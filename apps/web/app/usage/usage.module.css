@@ -1,0 +1,28 @@
+.lede {
+  margin: 0 0 28px;
+  max-width: 48ch;
+}
+
+.stat {
+  margin: 0;
+  padding-top: 16px;
+  border-top: 2px solid var(--color-ink);
+  max-width: 320px;
+}
+
+.stat dt {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.stat dd {
+  margin: 8px 0 0;
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-family: var(--font-display);
+  color: var(--color-ink);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}

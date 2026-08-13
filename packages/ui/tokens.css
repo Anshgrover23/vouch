@@ -1,0 +1,154 @@
+/* Hallmark · pre-emit critique: P4 H5 E5 S5 R3 V5
+ * genre: playful · macrostructure: Marquee Hero · theme: studied-DNA
+ * DNA-source: https://split-the-receipt.preview.emergentagent.com/ (public reference for Vouch)
+ * nav: N-minimal wordmark+cta · footer: Ft1 · hero: H2 split + lime ticker
+ * display: Bricolage Grotesque · body: Geist · label: Geist Mono
+ * paper oklch(96.2% 0.012 102) · lime oklch(94% 0.21 122) · blue oklch(52% 0.27 270)
+ */
+:root {
+  --color-paper: oklch(96.2% 0.012 102);
+  --color-paper-2: oklch(99% 0.008 102);
+  --color-paper-3: oklch(93% 0.014 102);
+  --color-rule: oklch(18% 0.02 80);
+  --color-rule-2: oklch(40% 0.02 80);
+  --color-neutral: oklch(48% 0.012 80);
+  --color-muted: oklch(42% 0.014 80);
+  --color-ink-2: oklch(28% 0.02 80);
+  --color-ink: oklch(16% 0.02 80);
+  --color-lime: oklch(94% 0.21 122);
+  --color-lime-ink: oklch(16% 0.02 80);
+  --color-blue: oklch(52% 0.27 270);
+  --color-blue-ink: oklch(98% 0.01 102);
+  --color-pink: oklch(65% 0.24 12);
+  --color-pink-ink: oklch(98% 0.01 102);
+  --color-orange: oklch(70% 0.2 50);
+  --color-orange-ink: oklch(16% 0.02 80);
+  --color-accent: var(--color-blue);
+  --color-accent-ink: var(--color-blue-ink);
+  --color-focus: var(--color-lime);
+  --color-graphite: oklch(14% 0.012 80);
+  --color-graphite-cell: oklch(18% 0.014 80);
+  --color-graphite-ink: oklch(96% 0.01 102);
+  --color-overlay: oklch(16% 0.02 80 / 0.28);
+  --color-warn: var(--color-pink);
+  --color-ok: oklch(72% 0.18 145);
+  --color-scan: oklch(62% 0.26 15);
+  --font-display: var(--font-display-loaded), "Bricolage Grotesque", sans-serif;
+  --font-body: var(--font-body-loaded), "Geist", sans-serif;
+  --font-mono: var(--font-mono-loaded), "Geist Mono", ui-monospace, monospace;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-display: clamp(2.4rem, 7vw + 0.4rem, 4.6rem);
+  --radius: 0px;
+  --radius-card: 0px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 140ms;
+  --shadow-hard: 5px 5px 0 0 var(--color-ink);
+  --shadow-hard-sm: 3px 3px 0 0 var(--color-ink);
+  --shadow-card: 6px 6px 0 0 var(--color-ink);
+  --grid-line: oklch(16% 0.02 80 / 0.07);
+}
+
+html, body {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  color: var(--color-ink-2);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
+  color: var(--color-ink);
+  line-height: 0.95;
+}
+
+a { color: var(--color-ink); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+a:hover { color: var(--color-blue); }
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+  border-radius: 0;
+  padding: 12px 18px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-hard);
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+}
+.btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-hard-sm);
+  color: var(--color-ink);
+}
+.btn:active {
+  transform: translate(5px, 5px);
+  box-shadow: none;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-hard);
+}
+.btn-primary {
+  background: var(--color-blue);
+  color: var(--color-blue-ink);
+  border-color: var(--color-ink);
+}
+.btn-primary:hover { color: var(--color-blue-ink); }
+.btn-lime {
+  background: var(--color-lime);
+  color: var(--color-lime-ink);
+  border-color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

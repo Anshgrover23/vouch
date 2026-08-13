@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: proofsheet
+      POSTGRES_PASSWORD: proofsheet
+      POSTGRES_DB: proofsheet
+    ports:
+      - "5432:5432"
+    volumes:
+      - proofsheet_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U proofsheet"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  proofsheet_pg:

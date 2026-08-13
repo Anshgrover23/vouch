@@ -1,0 +1,276 @@
+/* Hallmark · pre-emit critique: P4 H5 E5 S5 R3 V5
+ * genre: playful · macrostructure: Marquee Hero · theme: studied-DNA
+ */
+.root {
+  overflow-x: clip;
+}
+
+.ticker {
+  overflow: clip;
+  background: var(--color-lime);
+  border-bottom: 2px solid var(--color-ink);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.tickerTrack {
+  display: flex;
+  width: max-content;
+  gap: 0;
+  animation: marquee 28s linear infinite;
+}
+
+.tickerTrack span {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 18px;
+}
+
+.tickerTrack b {
+  font-size: 0.7rem;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--space-xl);
+  padding: var(--space-2xl) var(--space-lg);
+  max-width: 1180px;
+  margin: 0 auto;
+  align-items: center;
+}
+
+.copy h1 {
+  font-size: var(--text-display);
+  margin: 12px 0 16px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.copy h1 em {
+  font-style: normal;
+  background: var(--color-lime);
+  box-shadow: 8px 0 0 var(--color-lime), -8px 0 0 var(--color-lime);
+  padding: 0 2px;
+}
+
+.badge {
+  display: inline-block;
+  margin: 0;
+  background: var(--color-pink);
+  color: var(--color-pink-ink);
+  border: 2px solid var(--color-ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+}
+
+.lede {
+  max-width: 42ch;
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 28px 0 0;
+}
+
+.checks {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin: 22px 0 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.checks li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checks svg {
+  color: var(--color-blue);
+}
+
+.steps {
+  background: var(--color-paper-2);
+  border-top: 2px solid var(--color-ink);
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.stepsHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: var(--space-lg);
+  max-width: 1180px;
+  margin: 0 auto 32px;
+  align-items: end;
+}
+
+.stepsHead h2 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.monoLede {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  max-width: 36ch;
+}
+
+.stepGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.stepGrid article {
+  background: var(--color-paper-2);
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-card);
+  padding: 22px 20px;
+  min-width: 0;
+}
+
+.stepGrid h3 {
+  margin: 10px 0 8px;
+  font-size: 1.2rem;
+}
+
+.stepGrid p:last-child {
+  margin: 0;
+  color: var(--color-ink-2);
+}
+
+.stepGrid .mono {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.void {
+  background: var(--color-graphite);
+  color: var(--color-graphite-ink);
+  padding: var(--space-2xl) var(--space-lg);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--space-xl);
+  align-items: center;
+}
+
+.voidCopy {
+  max-width: 52rem;
+}
+
+.voidCopy h2 {
+  color: var(--color-graphite-ink);
+  font-size: clamp(2.2rem, 6vw, 3.8rem);
+  margin: 14px 0 16px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.voidCopy p {
+  max-width: 46ch;
+  margin: 0 0 28px;
+  color: color-mix(in oklch, var(--color-graphite-ink) 78%, transparent);
+}
+
+.petty {
+  display: inline-block;
+  margin: 0;
+  background: var(--color-lime);
+  color: var(--color-lime-ink);
+  border: 2px solid var(--color-ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+}
+
+.uses {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.uses article {
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-hard);
+  padding: 22px 18px;
+  min-width: 0;
+}
+
+.uses h3 {
+  margin: 8px 0 0;
+  font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+}
+
+.lime { background: var(--color-lime); color: var(--color-lime-ink); }
+.pink { background: var(--color-pink); color: var(--color-pink-ink); }
+.blue { background: var(--color-blue); color: var(--color-blue-ink); }
+.orange { background: var(--color-orange); color: var(--color-orange-ink); }
+
+.lime h3, .pink h3, .blue h3, .orange h3 { color: inherit; }
+.uses .mono { color: inherit; opacity: 0.8; }
+
+@media (max-width: 900px) {
+  .hero,
+  .stepsHead,
+  .void,
+  .stepGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .copy h1 {
+    font-size: clamp(2.1rem, 10vw, 3.2rem);
+  }
+}
+
+@media (max-width: 414px) {
+  .actions :global(.btn) {
+    width: 100%;
+  }
+
+  .uses {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tickerTrack {
+    animation: none;
+  }
+}

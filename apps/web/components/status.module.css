@@ -1,0 +1,26 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper-2);
+  white-space: nowrap;
+}
+
+.ok {
+  background: var(--color-lime);
+  color: var(--color-lime-ink);
+}
+
+.warn {
+  background: var(--color-pink);
+  color: var(--color-pink-ink);
+}
+
+.neutral {
+  background: var(--color-paper-2);
+}

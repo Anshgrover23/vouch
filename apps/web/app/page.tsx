@@ -1,0 +1,126 @@
+import { SiteFooter, SiteNav } from "@/components/Chrome";
+import { ReceiptPoster } from "@/components/ReceiptPoster";
+import { IconArrow, IconCamera, IconCheck, IconShare, IconTap } from "@/components/Brand";
+import styles from "./landing.module.css";
+
+const ticker = [
+  "I didn't even eat the pizza",
+  "The oat milk isn't mine",
+  "You can't Venmo-request me for gas",
+  "Split evenly? Not this Costco run",
+];
+
+export default function LandingPage() {
+  return (
+    <>
+      <SiteNav />
+      <div className={styles.ticker} aria-hidden="true">
+        <div className={styles.tickerTrack}>
+          {[...ticker, ...ticker].map((line, i) => (
+            <span key={`${line}-${i}`}>
+              {line}
+              <b>◆</b>
+            </span>
+          ))}
+        </div>
+      </div>
+      <main className={styles.root}>
+        <section className={styles.hero}>
+          <div className={styles.copy}>
+            <p className={styles.badge}>The anti-Splitwise</p>
+            <h1>
+              Split the <em>receipt</em>, not the friendship.
+            </h1>
+            <p className={styles.lede}>
+              Upload the crumpled receipt. Housemates tap the lines they actually owe. Everyone vouches. Nobody argues about organic blueberries.
+            </p>
+            <div className={styles.actions}>
+              <a className="btn btn-primary" href="/new">
+                Vouch a receipt
+                <IconArrow />
+              </a>
+              <a className="btn" href="#how">
+                How it works
+              </a>
+            </div>
+            <ul className={styles.checks}>
+              <li>
+                <IconCheck /> No login
+              </li>
+              <li>
+                <IconCheck /> Share by link
+              </li>
+              <li>
+                <IconCheck /> AI reads the paper
+              </li>
+            </ul>
+          </div>
+          <ReceiptPoster />
+        </section>
+
+        <section className={styles.steps} id="how">
+          <div className={styles.stepsHead}>
+            <h2>Three taps. No fights.</h2>
+            <p className={styles.monoLede}>Splitwise makes you type. Vouch makes you tap. The receipt is the proof.</p>
+          </div>
+          <div className={styles.stepGrid}>
+            <article>
+              <p className="mono">
+                <IconCamera /> Step 01
+              </p>
+              <h3>Snap the receipt</h3>
+              <p>Upload a receipt or a Venmo/Zelle screenshot. AI pulls the merchant, date, total, and every line.</p>
+            </article>
+            <article>
+              <p className="mono">
+                <IconTap /> Step 02
+              </p>
+              <h3>Tap what you owe</h3>
+              <p>Housemates mark I owe this or not mine. Smudged lines stay flagged until someone checks them.</p>
+            </article>
+            <article>
+              <p className="mono">
+                <IconShare /> Step 03
+              </p>
+              <h3>Copy the split</h3>
+              <p>When people have vouched, you get a line for the chat: merchant, date, total, how many vouched.</p>
+            </article>
+          </div>
+        </section>
+
+        <section className={styles.void} id="share">
+          <div className={styles.voidCopy}>
+            <p className={styles.petty}>Petty. Social. Weekly.</p>
+            <h2>Nobody trusts the total.</h2>
+            <p>
+              Splitwise types the numbers. Vouch reads the paper. Every line has a witness. Every witness has a name. Every total is receipt-shaped truth.
+            </p>
+            <a className="btn btn-lime" href="/new">
+              Start a split
+              <IconArrow />
+            </a>
+          </div>
+          <div className={styles.uses}>
+            <article className={styles.lime}>
+              <p className="mono">Use it for</p>
+              <h3>Grocery runs</h3>
+            </article>
+            <article className={styles.pink}>
+              <p className="mono">Use it for</p>
+              <h3>Restaurant tabs</h3>
+            </article>
+            <article className={styles.blue}>
+              <p className="mono">Use it for</p>
+              <h3>Airbnb totals</h3>
+            </article>
+            <article className={styles.orange}>
+              <p className="mono">Use it for</p>
+              <h3>Venmo receipts</h3>
+            </article>
+          </div>
+        </section>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}

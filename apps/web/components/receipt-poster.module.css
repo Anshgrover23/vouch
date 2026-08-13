@@ -1,0 +1,120 @@
+.wrap {
+  position: relative;
+  min-width: 0;
+  padding: 28px 12px 20px;
+}
+
+.sheet {
+  margin: 0;
+  background: var(--color-paper-2);
+  border: 3px solid var(--color-ink);
+  box-shadow: 10px 10px 0 0 var(--color-ink);
+  padding: 22px 20px 18px;
+  transform: rotate(3deg);
+  font-family: var(--font-mono);
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.title {
+  margin: 10px 0 16px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.sheet ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sheet li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 2px dashed var(--color-rule);
+  font-size: 0.82rem;
+  color: var(--color-ink);
+}
+
+.sheet li b {
+  font-family: var(--font-mono);
+}
+
+.box {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper-2);
+}
+
+.boxLime {
+  background: var(--color-lime);
+}
+
+.boxPink {
+  background: var(--color-pink);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 16px 0 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+}
+
+.total strong {
+  font-size: 1.8rem;
+  letter-spacing: -0.04em;
+}
+
+.sticker {
+  position: absolute;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 2px solid var(--color-ink);
+  box-shadow: var(--shadow-hard-sm);
+  padding: 6px 10px;
+  color: var(--color-ink);
+}
+
+.sam {
+  top: 8px;
+  left: 0;
+  background: var(--color-blue);
+  color: var(--color-blue-ink);
+  transform: rotate(-8deg);
+}
+
+.riley {
+  right: 4px;
+  bottom: 8px;
+  background: var(--color-lime);
+  transform: rotate(6deg);
+}
+
+@media (max-width: 700px) {
+  .sheet {
+    transform: rotate(1deg);
+  }
+}

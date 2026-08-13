@@ -1,0 +1,109 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px var(--space-lg) var(--space-3xl);
+  overflow-x: clip;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 24px;
+}
+
+.top h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--color-ink);
+}
+
+.err {
+  color: var(--color-pink);
+  margin: 0 0 16px;
+}
+
+.note {
+  margin: 0 0 16px;
+  color: var(--color-muted);
+  max-width: 62ch;
+}
+
+.stage {
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  background: var(--color-paper-2);
+}
+
+.gate {
+  max-width: 28rem;
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 32px;
+}
+
+.gate h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+}
+
+.gate p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.gate label {
+  display: grid;
+  gap: 6px;
+}
+
+.gate input {
+  box-sizing: border-box;
+  border: 2px solid var(--color-ink);
+  padding: 10px 12px;
+  font: 400 1rem var(--font-body);
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.export {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 2px solid var(--color-ink);
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.exportLine {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 414px) {
+  .gate :global(.btn) {
+    width: 100%;
+  }
+}
