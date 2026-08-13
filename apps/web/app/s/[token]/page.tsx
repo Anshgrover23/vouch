@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/Brand";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
-import { exportLine, parseDisplayName, type SplitClaim } from "@/lib/split";
+import { exportLine, parseDisplayName, sanitizeFieldValue, type SplitClaim } from "@/lib/split";
 import styles from "./split.module.css";
 
 const NAME_KEY = "vouch-display-name";
@@ -49,6 +49,8 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         status: string;
       }) => ({
         ...f,
+        modelValue: sanitizeFieldValue(f.modelValue) || null,
+        humanValue: sanitizeFieldValue(f.humanValue) || null,
         confidence: f.confidence == null ? null : Number(f.confidence),
       })),
     );

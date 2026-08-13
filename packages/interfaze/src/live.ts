@@ -131,7 +131,7 @@ export class LiveInterfazeProvider implements InterfazeProvider {
         key: row.key,
         label: row.label,
         value: row.value,
-        confidence: match?.average_confidence ?? 0.9,
+        confidence: match?.average_confidence ?? 0.55,
         bounds: match?.bounds ?? null,
       };
     });
@@ -140,14 +140,21 @@ export class LiveInterfazeProvider implements InterfazeProvider {
   }
 }
 
+function usableText(value: unknown) {
+  if (value == null || typeof value === "object") return "";
+  const text = String(value).trim();
+  if (!text) return "";
+  if (/^(null|undefined|none|n\/a|nil|unknown|-)$/i.test(text)) return "";
+  return text;
+}
+
 function flattenExtracted(object: Record<string, unknown>) {
   const rows: Array<{ key: string; label: string; value: string }> = [];
   const items = object.items;
 
   for (const [key, value] of Object.entries(object)) {
-    if (key === "items" || value == null || value === "") continue;
-    if (typeof value === "object") continue;
-    const text = String(value).trim();
+    if (key === "items") continue;
+    const text = usableText(value);
     if (!text) continue;
     rows.push({ key, label: fieldLabels[key] ?? key, value: text });
   }
@@ -156,8 +163,8 @@ function flattenExtracted(object: Record<string, unknown>) {
     items.forEach((item, i) => {
       if (!item || typeof item !== "object") return;
       const rec = item as Record<string, unknown>;
-      const name = String(rec.name ?? rec.description ?? rec.item ?? "").trim();
-      const price = String(rec.price ?? rec.amount ?? "").trim();
+      const name = usableText(rec.name ?? rec.description ?? rec.item);
+      const price = usableText(rec.price ?? rec.amount);
       if (!name && !price) return;
       rows.push({
         key: `item_${i + 1}`,

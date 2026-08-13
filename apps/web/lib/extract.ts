@@ -11,7 +11,7 @@ import {
   workspaces,
   type Database,
 } from "@proofsheet/db";
-import { createProvider, fieldLabels } from "@proofsheet/interfaze";
+import { createProvider, fieldLabels, templates as templateSpecs } from "@proofsheet/interfaze";
 
 type JobRow = {
   id: string;
@@ -67,59 +67,77 @@ export async function processExtract(
   const [workspace] = await database.select().from(workspaces).where(eq(workspaces.id, doc.workspaceId)).limit(1);
   if (!workspace) throw new Error("workspace not found");
 
-  await database.update(documents).set({ status: "processing", updatedAt: new Date() }).where(eq(documents.id, doc.id));
+  await database.update(documents).set({ status: "processing", error: null, updatedAt: new Date() }).where(eq(documents.id, doc.id));
 
   const displayUrl = doc.sourceUrl || doc.storagePath;
   const source = await interfazeImageSource(displayUrl, doc.mimeType);
-
-  const guard = await provider.guard({ imageUrl: source, text: `Review ${template.slug}` });
-  if (!guard.safe) {
-    await database
-      .update(documents)
-      .set({ status: "rejected", error: `guardrail ${guard.code ?? guard.raw}`, updatedAt: new Date() })
-      .where(eq(documents.id, doc.id));
-    await database.update(jobs).set({ status: "done", updatedAt: new Date() }).where(eq(jobs.id, job.id));
-    return;
-  }
 
   await database.delete(documentPages).where(eq(documentPages.documentId, doc.id));
   await database.delete(fields).where(eq(fields.documentId, doc.id));
   await database.delete(precontextBlobs).where(eq(precontextBlobs.documentId, doc.id));
 
-  const ocr = await provider.ocr(source);
   await database.insert(documentPages).values({
     documentId: doc.id,
     workspaceId: doc.workspaceId,
     pageIndex: 0,
     imageUrl: displayUrl,
-    width: ocr.width ?? 1024,
-    height: ocr.height ?? 1536,
+    width: 1024,
+    height: 1536,
   });
 
+  const spec = templateSpecs[template.slug as keyof typeof templateSpecs];
   const extracted = await provider.extract({
     sourceUrl: source,
-    prompt: `Extract fields for template ${template.slug}`,
+    prompt: spec?.prompt ?? `Extract fields for template ${template.slug}`,
     schema: template.jsonSchema as Record<string, unknown>,
     schemaName: template.slug,
     modality: "image",
   });
 
-  const threshold = Number(workspace.confidenceThreshold);
+  const ocrSize = extracted.precontext.find((p) => p.name === "ocr")?.result as
+    | { width?: number; height?: number }
+    | undefined;
+  if (ocrSize?.width && ocrSize?.height) {
+    await database
+      .update(documentPages)
+      .set({ width: ocrSize.width, height: ocrSize.height })
+      .where(eq(documentPages.documentId, doc.id));
+  }
 
-  for (const field of extracted.fields) {
-    if (!field.value?.trim() || field.key === "items") continue;
-    const confidence = field.confidence;
-    const status = confidence >= threshold ? "auto" : "needs_review";
-    await database.insert(fields).values({
-      documentId: doc.id,
-      workspaceId: doc.workspaceId,
-      key: field.key,
-      label: field.label || fieldLabels[field.key] || field.key,
-      modelValue: field.value,
-      confidence: String(confidence),
-      bounds: field.bounds,
-      status,
-    });
+  const threshold = Number(workspace.confidenceThreshold);
+  const usable = extracted.fields.filter((field) => field.value?.trim() && field.key !== "items");
+
+  if (usable.length === 0) {
+    const fallback = template.slug === "payment-screenshot"
+      ? ["sender", "recipient", "amount", "date"]
+      : ["merchant", "date", "total"];
+    for (const key of fallback) {
+      await database.insert(fields).values({
+        documentId: doc.id,
+        workspaceId: doc.workspaceId,
+        key,
+        label: fieldLabels[key] || key,
+        modelValue: null,
+        confidence: "0",
+        bounds: null,
+        status: "needs_review",
+      });
+    }
+  } else {
+    for (const field of usable) {
+      const confidence = field.confidence;
+      const status = confidence >= threshold ? "auto" : "needs_review";
+      await database.insert(fields).values({
+        documentId: doc.id,
+        workspaceId: doc.workspaceId,
+        key: field.key,
+        label: field.label || fieldLabels[field.key] || field.key,
+        modelValue: field.value,
+        confidence: String(confidence),
+        bounds: field.bounds,
+        status,
+      });
+    }
   }
 
   await database.insert(precontextBlobs).values({
@@ -132,6 +150,9 @@ export async function processExtract(
     .update(documents)
     .set({
       status: "needs_review",
+      error: usable.length === 0
+        ? "Couldn't read this image. Type the fields or try a clearer receipt photo."
+        : null,
       tokenIn: extracted.tokenIn,
       tokenOut: extracted.tokenOut,
       providerMode: provider.mode,

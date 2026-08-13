@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { StatusChip, statusLabel } from "@/components/StatusChip";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
-import { exportLine, parseDisplayName, type SplitClaim } from "@/lib/split";
+import { exportLine, parseDisplayName, sanitizeFieldValue, type SplitClaim } from "@/lib/split";
 import styles from "./review.module.css";
 
 const NAME_KEY = "vouch-display-name";
@@ -33,12 +33,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     const res = await fetch(`/api/documents/${docId}`);
     if (!res.ok) {
       setError("This document is not available.");
+      setStatus("missing");
       return;
     }
     const json = await res.json();
     setTitle(json.document.title);
     setStatus(json.document.status);
     setShareToken(json.document.shareToken ?? "");
+    if (json.document.error) setError(json.document.error);
     setFields(
       json.fields.map((f: {
         id: string;
@@ -51,6 +53,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         status: string;
       }) => ({
         ...f,
+        modelValue: sanitizeFieldValue(f.modelValue) || null,
+        humanValue: sanitizeFieldValue(f.humanValue) || null,
         confidence: f.confidence == null ? null : Number(f.confidence),
       })),
     );
@@ -68,9 +72,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     if (!id) return;
     load(id);
+    if (status !== "uploaded" && status !== "processing") return;
     const t = setInterval(() => load(id), 1500);
     return () => clearInterval(t);
-  }, [id]);
+  }, [id, status]);
 
   async function saveField(fieldId: string, value: string) {
     await fetch(`/api/documents/${id}/fields`, {

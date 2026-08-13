@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, use, useMemo, useState, type ReactNode } from "react";
-import { formatMoney, isClaimableKey, lineShare, type SplitClaim } from "@/lib/split";
+import { formatMoney, isClaimableKey, lineShare, sanitizeFieldValue, type SplitClaim } from "@/lib/split";
 import styles from "./review.module.css";
 
 export type CanvasField = {
@@ -181,12 +181,16 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
   return (
     <ol className={styles.fields}>
       {fields.map((f) => {
-        const value = drafts[f.id] ?? f.humanValue ?? f.modelValue ?? "";
+        const value =
+          drafts[f.id] !== undefined
+            ? drafts[f.id]
+            : sanitizeFieldValue(f.humanValue) || sanitizeFieldValue(f.modelValue);
         const display =
           isClaimableKey(f.key) || f.key === "total" || f.key === "amount"
             ? formatMoney(value) || value
             : value;
-        const low = (f.confidence ?? 0) < threshold;
+        const empty = !value;
+        const low = empty || (f.confidence ?? 0) < threshold;
         const mine = claims.find((c) => c.fieldId === f.id && c.displayName === displayName);
         const share = lineShare(value, claims, f.id);
         const claimable = Boolean(claim && displayName && isClaimableKey(f.key));
@@ -195,7 +199,7 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
             <button type="button" className={styles.head} onClick={() => setActive(f.id)}>
               <span>{f.label}</span>
               <span className={`${styles.chip} ${low ? styles.warn : styles.ok}`}>
-                {f.confidence == null ? "—" : f.confidence.toFixed(2)}
+                {empty || f.confidence == null || f.confidence === 0 ? "—" : f.confidence.toFixed(2)}
               </span>
             </button>
             {readOnly ? <p className={styles.value}>{display}</p> : (
@@ -205,6 +209,7 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
                   onChange={(e) => setDraft(f.id, e.target.value)}
                   onFocus={() => setActive(f.id)}
                   aria-label={f.label}
+                  placeholder="Type what you see"
                 />
                 <button type="button" className="btn" disabled={saving === f.id} onClick={() => save(f.id)}>
                   {saving === f.id ? "Saving" : "Save"}

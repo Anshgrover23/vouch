@@ -26,8 +26,62 @@ export default function NewReceiptPage() {
   const [error, setError] = useState<string | null>(null);
 
   async function ensureSession() {
-    const me = await fetch("/api/auth/demo");
-    if (me.status === 401) await fetch("/api/auth/demo", { method: "POST" });
+    await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
+  }
+
+  async function createDocument(slug: Kind, upload?: File | null) {
+    if (upload) {
+      const body = new FormData();
+      body.set("slug", slug);
+      body.set("file", upload);
+      return fetch("/api/documents", { method: "POST", body, credentials: "include" });
+    }
+    return fetch("/api/documents", {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug }),
+    });
+  }
+
+  async function start(slug: Kind, upload?: File | null) {
+    setBusy(true);
+    setError(null);
+    setPhase("reading");
+    await ensureSession();
+    let res = await createDocument(slug, upload);
+    if (res.status === 401) {
+      await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
+      res = await createDocument(slug, upload);
+    }
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setBusy(false);
+      setPhase("idle");
+      setError(
+        json.error === "unauthorized"
+          ? "Session expired. Tap Read the receipt again."
+          : json.error === "file too large"
+            ? "That image is over 8MB."
+            : json.error === "unknown template"
+              ? "Unknown receipt type."
+              : "Could not start that receipt. Try again.",
+      );
+      return;
+    }
+    const id = json.document.id as string;
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 1200));
+      const check = await fetch(`/api/documents/${id}`, { credentials: "include" });
+      if (!check.ok) continue;
+      const doc = await check.json();
+      const status = doc.document?.status as string;
+      if (status && status !== "uploaded" && status !== "processing") {
+        router.push(`/review/${id}`);
+        return;
+      }
+    }
+    router.push(`/review/${id}`);
   }
 
   function takeFile(next: File | null) {
@@ -43,47 +97,6 @@ export default function NewReceiptPage() {
     setError(null);
     setFile(next);
     setPreview(URL.createObjectURL(next));
-  }
-
-  async function start(slug: Kind, upload?: File | null) {
-    setBusy(true);
-    setError(null);
-    await ensureSession();
-    let res: Response;
-    if (upload) {
-      setPhase("reading");
-      const body = new FormData();
-      body.set("slug", slug);
-      body.set("file", upload);
-      res = await fetch("/api/documents", { method: "POST", body });
-    } else {
-      setPhase("reading");
-      res = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug }),
-      });
-    }
-    const json = await res.json();
-    if (!res.ok) {
-      setBusy(false);
-      setPhase("idle");
-      setError("Could not start that receipt. Try again.");
-      return;
-    }
-    const id = json.document.id as string;
-    for (let i = 0; i < 40; i++) {
-      await new Promise((r) => setTimeout(r, 800));
-      const check = await fetch(`/api/documents/${id}`);
-      if (!check.ok) continue;
-      const doc = await check.json();
-      const status = doc.document?.status as string;
-      if (status && status !== "uploaded" && status !== "processing") {
-        router.push(`/review/${id}`);
-        return;
-      }
-    }
-    router.push(`/review/${id}`);
   }
 
   return (
@@ -114,7 +127,7 @@ export default function NewReceiptPage() {
                 <li>Confidence per line</li>
                 <li>Grand total</li>
               </ul>
-              <p className={styles.wait}>This can take 5–15 seconds.</p>
+              <p className={styles.wait}>Usually a few seconds.</p>
             </div>
           </section>
         ) : (

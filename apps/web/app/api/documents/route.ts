@@ -111,6 +111,14 @@ export async function POST(req: Request) {
 
     return Response.json({ document: doc });
   } catch (error) {
-    return Response.json({ error: String(error) }, { status: 400 });
+    const message = error instanceof Error ? error.message : "failed";
+    if (message === "unauthorized") {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    if (message === "file too large") {
+      return Response.json({ error: "file too large" }, { status: 400 });
+    }
+    console.error("[documents POST]", error);
+    return Response.json({ error: "failed" }, { status: 400 });
   }
 }

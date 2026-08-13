@@ -31,7 +31,7 @@ export const templates = {
     schema: groceryReceiptSchema,
     samplePath: "/samples/receipt.png",
     prompt:
-      "Extract the merchant, date, grand total, and each purchased line item with its price from this grocery receipt. Skip tax and subtotal rows.",
+      "Extract the merchant, date, grand total, and each purchased line item with its price from this grocery receipt. Skip tax and subtotal rows. If this is not a receipt or a field is unreadable, omit that field. Never output the word null.",
   },
   "payment-screenshot": {
     slug: "payment-screenshot",
@@ -40,7 +40,7 @@ export const templates = {
     schema: paymentScreenshotSchema,
     samplePath: "/samples/payment.png",
     prompt:
-      "Extract sender, recipient, amount, date, status, and note from this payment confirmation. This is a payment screenshot, not an identity document.",
+      "Extract sender, recipient, amount, date, status, and note from this payment confirmation. This is a payment screenshot, not an identity document. If a field is unreadable, omit it. Never output the word null.",
   },
 };
 

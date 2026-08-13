@@ -11,9 +11,15 @@ export type SplitClaim = {
   stance: string;
 };
 
+export function sanitizeFieldValue(raw: string | null | undefined) {
+  const text = (raw ?? "").trim();
+  if (!text || /^(null|undefined|none|n\/a|nil|unknown|-)$/i.test(text)) return "";
+  return text;
+}
+
 export function fieldValue(fields: SplitField[], key: string) {
   const row = fields.find((f) => f.key === key);
-  return (row?.humanValue ?? row?.modelValue ?? "").trim();
+  return sanitizeFieldValue(row?.humanValue ?? row?.modelValue);
 }
 
 export function parseMoney(value: string) {
