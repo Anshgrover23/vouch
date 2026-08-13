@@ -20,14 +20,14 @@ export function AppShell({
   return (
     <div className={styles.frame}>
       <header className={styles.top}>
-        <Link href="/inbox" className={styles.brand}>
+        <Link href="/" className={styles.brand} aria-label="Vouch home">
           <BrandMark />
           Vouch
         </Link>
         <nav className={styles.nav}>
-          <Link href="/inbox" className={pathname.startsWith("/inbox") || pathname.startsWith("/review") ? styles.active : undefined}>
-            Splits
-          </Link>
+          {pathname.startsWith("/inbox") ? null : (
+            <Link href="/inbox">Splits</Link>
+          )}
         </nav>
         <Link className="btn btn-primary" href="/new">
           New receipt

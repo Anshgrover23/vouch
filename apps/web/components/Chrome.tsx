@@ -7,7 +7,7 @@ import styles from "./chrome.module.css";
 export function SiteNav() {
   return (
     <header className={styles.nav}>
-      <Link href="/" className={styles.brand}>
+      <Link href="/" className={styles.brand} aria-label="Vouch home">
         <BrandMark />
         Vouch
       </Link>

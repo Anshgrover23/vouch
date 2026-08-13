@@ -113,7 +113,7 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
   return (
     <div className={styles.page}>
       <header className={styles.top}>
-        <Link href="/" className={styles.brand}>
+        <Link href="/" className={styles.brand} aria-label="Vouch home">
           <BrandMark />
           Vouch
         </Link>

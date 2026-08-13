@@ -33,6 +33,16 @@
   color: var(--color-ink);
 }
 
+.brand:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
 .err {
   color: var(--color-pink);
   margin: 0 0 16px;

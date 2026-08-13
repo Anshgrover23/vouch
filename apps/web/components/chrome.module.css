@@ -25,7 +25,13 @@
 }
 
 .brand:hover {
-  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
 }
 
 .actions {
