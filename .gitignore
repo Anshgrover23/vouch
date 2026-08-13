@@ -15,3 +15,5 @@ apps/eval/__pycache__
 apps/eval/.venv
 coverage
 .hallmark
+supabase/.temp
+.vercel

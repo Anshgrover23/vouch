@@ -200,7 +200,7 @@
   min-width: 0;
 }
 
-.voidCopy p {
+.voidCopy p:not(.petty) {
   max-width: 46ch;
   margin: 0 0 28px;
   color: color-mix(in oklch, var(--color-graphite-ink) 78%, transparent);
@@ -210,7 +210,7 @@
   display: inline-block;
   margin: 0;
   background: var(--color-lime);
-  color: var(--color-lime-ink);
+  color: var(--color-ink);
   border: 2px solid var(--color-ink);
   font-family: var(--font-display);
   font-weight: 800;
