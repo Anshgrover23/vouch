@@ -1,7 +1,10 @@
 node_modules
+.pnpm-store
 .turbo
 .next
 dist
+*.tsbuildinfo
+bun.lock
 .env
 .env.local
 **/.env.local

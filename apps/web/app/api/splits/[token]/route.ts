@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { documentPages, documents, fields, splitClaims } from "@proofsheet/db";
 import { db } from "@/lib/db";
+import { displayImageUrl } from "@/lib/image-response";
 import { exportLine } from "@/lib/split";
 
 export async function GET(_: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -21,7 +22,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ token: str
       status: doc.status,
       shareToken: doc.shareToken,
     },
-    pages,
+    pages: pages.map((p) => ({
+      imageUrl: displayImageUrl(doc.sourceUrl || doc.storagePath, `/api/splits/${token}/image`),
+      width: p.width,
+      height: p.height,
+    })),
     fields: fieldRows,
     claims,
     exportLine: exportLine(fieldRows, claims),

@@ -9,6 +9,35 @@
   max-width: 72ch;
 }
 
+.fail {
+  max-width: 28rem;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 3px solid var(--color-ink);
+  background: var(--color-paper-2);
+  box-shadow: var(--shadow-card);
+}
+
+.failThumb {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border: 2px solid var(--color-ink);
+}
+
+.failReason {
+  margin: 0;
+  color: var(--color-warn);
+}
+
+.failActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .stage {
   border: 3px solid var(--color-ink);
   box-shadow: var(--shadow-card);
@@ -23,32 +52,6 @@
   min-height: 0;
 }
 
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
-  margin: 0 0 16px;
-}
-
-.name {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.name input {
-  box-sizing: border-box;
-  border: 2px solid var(--color-ink);
-  border-radius: 0;
-  padding: 8px 10px;
-  font: 400 0.9rem var(--font-body);
-  background: var(--color-paper-2);
-  color: var(--color-ink);
-  min-width: 160px;
-  box-shadow: var(--shadow-hard-sm);
-}
-
 .shareShort {
   display: none;
 }
@@ -57,21 +60,11 @@
   .stage {
     height: auto;
     min-height: 0;
+    overflow: visible;
   }
 
   .stage > * {
     height: auto;
-  }
-
-  .toolbar,
-  .name {
-    width: 100%;
-  }
-
-  .name input {
-    min-width: 0;
-    width: 100%;
-    font-size: 16px;
   }
 
   .shareLong {

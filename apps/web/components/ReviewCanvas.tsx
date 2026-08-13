@@ -113,6 +113,43 @@ function Root({
   );
 }
 
+function Pane({ children }: { children: ReactNode }) {
+  return <div className={styles.pane}>{children}</div>;
+}
+
+function Identity({
+  name,
+  onNameChange,
+  onConfirm,
+}: {
+  name: string;
+  onNameChange: (value: string) => void;
+  onConfirm: () => void;
+}) {
+  const {
+    meta: { displayName },
+  } = useReview();
+  const ready = Boolean(displayName);
+
+  return (
+    <div className={styles.identity}>
+      <label className={styles.identityField}>
+        <span className="mono">you&apos;re splitting as</span>
+        <input
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder="Ram"
+          maxLength={48}
+        />
+      </label>
+      <button className="btn btn-primary" type="button" onClick={onConfirm} disabled={!name.trim()}>
+        That&apos;s me
+      </button>
+      {ready ? null : <p className={styles.hint}>Add your name to vouch.</p>}
+    </div>
+  );
+}
+
 function Source() {
   const {
     state: { active },
@@ -195,7 +232,8 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
         const low = empty || (f.confidence ?? 0) < threshold;
         const mine = claims.find((c) => c.fieldId === f.id && c.displayName === displayName);
         const share = lineShare(value, claims, f.id);
-        const claimable = Boolean(claim && displayName && isClaimableKey(f.key));
+        const canClaim = Boolean(claim && isClaimableKey(f.key));
+        const claimEnabled = Boolean(displayName);
         return (
           <li key={f.id} className={f.id === active ? `${styles.field} ${styles.fieldActive}` : styles.field}>
             <button type="button" className={styles.head} onClick={() => setActive(f.id)}>
@@ -219,12 +257,13 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
                 {f.humanValue ? <p className={styles.hint}>Original reading: {f.modelValue}</p> : null}
               </div>
             )}
-            {claimable ? (
+            {canClaim ? (
               <div className={styles.claims}>
                 <button
                   type="button"
                   className={mine?.stance === "owe" ? `${styles.claim} ${styles.claimOn}` : styles.claim}
                   aria-pressed={mine?.stance === "owe"}
+                  disabled={!claimEnabled}
                   onClick={() => claim?.(f.id, "owe")}
                 >
                   I owe this
@@ -233,6 +272,7 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
                   type="button"
                   className={mine?.stance === "not_mine" ? `${styles.claim} ${styles.claimOff}` : styles.claim}
                   aria-pressed={mine?.stance === "not_mine"}
+                  disabled={!claimEnabled}
                   onClick={() => claim?.(f.id, "not_mine")}
                 >
                   Not mine
@@ -243,7 +283,9 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
               <p className={styles.hint}>
                 {share.names.join(", ")} · {formatMoney(share.each)} each
               </p>
-            ) : claimable ? (
+            ) : canClaim && !claimEnabled ? (
+              <p className={styles.hint}>Add your name to vouch.</p>
+            ) : canClaim ? (
               <p className={styles.hint}>Nobody has claimed this line yet.</p>
             ) : null}
           </li>
@@ -258,6 +300,8 @@ export const Review = {
   Source,
   Audio,
   Fields,
+  Pane,
+  Identity,
 };
 
 export function ReviewCanvas({
@@ -269,6 +313,9 @@ export function ReviewCanvas({
   compact,
   claims,
   displayName,
+  name,
+  onNameChange,
+  onConfirmName,
   onSaveField,
   onClaim,
 }: {
@@ -280,6 +327,9 @@ export function ReviewCanvas({
   compact?: boolean;
   claims?: SplitClaim[];
   displayName?: string | null;
+  name?: string;
+  onNameChange?: (value: string) => void;
+  onConfirmName?: () => void;
   onSaveField?: (id: string, value: string) => Promise<void>;
   onClaim?: (id: string, stance: "owe" | "not_mine") => Promise<void>;
 }) {
@@ -295,7 +345,12 @@ export function ReviewCanvas({
       onClaim={onClaim}
     >
       {audio ? <Review.Audio /> : <Review.Source />}
-      <Review.Fields readOnly={readOnly} />
+      <Review.Pane>
+        {onNameChange && onConfirmName ? (
+          <Review.Identity name={name ?? ""} onNameChange={onNameChange} onConfirm={onConfirmName} />
+        ) : null}
+        <Review.Fields readOnly={readOnly} />
+      </Review.Pane>
     </Review.Root>
   );
 }

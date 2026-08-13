@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { documentPages, documents, fields, splitClaims } from "@proofsheet/db";
 import { requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { displayImageUrl } from "@/lib/image-response";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -28,7 +29,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
         providerMode: doc.providerMode,
       },
       pages: pages.map((p) => ({
-        imageUrl: p.imageUrl,
+        imageUrl: displayImageUrl(doc.sourceUrl || doc.storagePath, `/api/documents/${id}/image`),
         width: p.width,
         height: p.height,
       })),

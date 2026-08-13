@@ -127,6 +127,7 @@
   .stage {
     height: auto;
     min-height: 0;
+    overflow: visible;
   }
 
   .stage > * {

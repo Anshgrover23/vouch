@@ -148,6 +148,18 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
               fields={fields}
               claims={claims}
               displayName={displayName}
+              name={name}
+              onNameChange={setName}
+              onConfirmName={() => {
+                const next = parseDisplayName(name);
+                if (!next) {
+                  setError("Use a name between 1 and 48 characters.");
+                  return;
+                }
+                window.localStorage.setItem(NAME_KEY, next);
+                setName(next);
+                setError(null);
+              }}
               onSaveField={saveField}
               onClaim={claimLine}
             />

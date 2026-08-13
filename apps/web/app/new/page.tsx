@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SiteNav } from "@/components/Chrome";
 import { IconArrow, IconCamera, IconUpload } from "@/components/Brand";
+import { compressReceipt } from "@/lib/compress-image";
 import styles from "./new.module.css";
 
 type Kind = "grocery-receipt" | "payment-screenshot";
@@ -49,10 +50,11 @@ export default function NewReceiptPage() {
     setError(null);
     setPhase("reading");
     await ensureSession();
-    let res = await createDocument(slug, upload);
+    const payload = upload ? await compressReceipt(upload) : upload;
+    let res = await createDocument(slug, payload);
     if (res.status === 401) {
       await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
-      res = await createDocument(slug, upload);
+      res = await createDocument(slug, payload);
     }
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {

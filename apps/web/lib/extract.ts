@@ -69,7 +69,7 @@ export async function processExtract(
 
   await database.update(documents).set({ status: "processing", error: null, updatedAt: new Date() }).where(eq(documents.id, doc.id));
 
-  const displayUrl = doc.sourceUrl || doc.storagePath;
+  const displayUrl = doc.sourceUrl || doc.storagePath || "";
   const source = await interfazeImageSource(displayUrl, doc.mimeType);
 
   await database.delete(documentPages).where(eq(documentPages.documentId, doc.id));
@@ -80,19 +80,28 @@ export async function processExtract(
     documentId: doc.id,
     workspaceId: doc.workspaceId,
     pageIndex: 0,
-    imageUrl: displayUrl,
+    imageUrl: displayUrl.startsWith("data:") ? "" : displayUrl,
     width: 1024,
     height: 1536,
   });
 
   const spec = templateSpecs[template.slug as keyof typeof templateSpecs];
-  const extracted = await provider.extract({
-    sourceUrl: source,
-    prompt: spec?.prompt ?? `Extract fields for template ${template.slug}`,
-    schema: template.jsonSchema as Record<string, unknown>,
-    schemaName: template.slug,
-    modality: "image",
-  });
+  const extractStarted = Date.now();
+  const bytes = source.startsWith("data:") ? source.length : source;
+  let extracted;
+  try {
+    extracted = await provider.extract({
+      sourceUrl: source,
+      prompt: spec?.prompt ?? `Extract fields for template ${template.slug}`,
+      schema: template.jsonSchema as Record<string, unknown>,
+      schemaName: template.slug,
+      modality: "image",
+    });
+    console.log(`[extract] interfaze ${Date.now() - extractStarted}ms bytes=${bytes}`);
+  } catch (error) {
+    console.error(`[extract] interfaze ${Date.now() - extractStarted}ms bytes=${bytes} failed`, error);
+    throw error;
+  }
 
   const ocrSize = extracted.precontext.find((p) => p.name === "ocr")?.result as
     | { width?: number; height?: number }
@@ -164,6 +173,7 @@ export async function processExtract(
 }
 
 async function interfazeImageSource(sourceUrl: string, mimeType: string | null) {
+  if (sourceUrl.startsWith("https://")) return sourceUrl;
   if (sourceUrl.startsWith("data:")) return sourceUrl;
   const filePath = await findPublicFile(sourceUrl);
   if (!filePath) return sourceUrl;

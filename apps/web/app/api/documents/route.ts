@@ -9,9 +9,11 @@ import { requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tryProcessDocument } from "@/lib/extract";
 import { providerMode } from "@/lib/flags";
+import { resizeReceipt, storageConfigured, uploadReceipt } from "@/lib/receipt-storage";
 import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouchedCount } from "@/lib/split";
 
 export const maxDuration = 60;
+export const runtime = "nodejs";
 
 export async function GET() {
   try {
@@ -67,19 +69,31 @@ export async function GET() {
   }
 }
 
-async function saveUpload(file: File, origin: string) {
-  const buf = Buffer.from(await file.arrayBuffer());
-  if (buf.byteLength > 8 * 1024 * 1024) throw new Error("file too large");
-  const mime = file.type || "image/jpeg";
-  if (process.env.VERCEL) {
-    return { url: `data:${mime};base64,${buf.toString("base64")}`, mime };
+async function saveUpload(file: File) {
+  const raw = Buffer.from(await file.arrayBuffer());
+  if (raw.byteLength > 8 * 1024 * 1024) throw new Error("file too large");
+  const { body, mime } = await resizeReceipt(raw);
+  console.log(`[upload] resized ${raw.byteLength}→${body.byteLength} storage=${storageConfigured()}`);
+
+  if (storageConfigured()) {
+    try {
+      const url = await uploadReceipt(body);
+      return { url, mime };
+    } catch (error) {
+      console.error("[upload] storage failed", error);
+      if (!process.env.VERCEL) throw error;
+    }
   }
-  const ext = mime === "image/webp" ? "webp" : mime === "image/png" ? "png" : "jpg";
+
+  if (process.env.VERCEL) {
+    return { url: `data:${mime};base64,${body.toString("base64")}`, mime };
+  }
+
   const dir = join(process.cwd(), "public", "uploads");
   await mkdir(dir, { recursive: true });
-  const name = `${randomUUID()}.${ext}`;
-  await writeFile(join(dir, name), buf);
-  return { url: `${origin}/uploads/${name}`, mime };
+  const name = `${randomUUID()}.jpg`;
+  await writeFile(join(dir, name), body);
+  return { url: `/uploads/${name}`, mime };
 }
 
 export async function POST(req: Request) {
@@ -97,7 +111,7 @@ export async function POST(req: Request) {
       slug = String(form.get("slug") ?? "grocery-receipt");
       const file = form.get("file");
       if (file instanceof File && file.size > 0) {
-        const saved = await saveUpload(file, origin);
+        const saved = await saveUpload(file);
         sourceUrl = saved.url;
         mimeType = saved.mime;
         title = file.name;
@@ -150,7 +164,9 @@ export async function POST(req: Request) {
       }),
     );
 
-    return Response.json({ document: doc });
+    return Response.json({
+      document: { id: doc.id, status: doc.status, title: doc.title },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "failed";
     if (message === "unauthorized") {

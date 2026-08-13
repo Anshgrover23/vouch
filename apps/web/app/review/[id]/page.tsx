@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
 import { SplitBoard } from "@/components/SplitBoard";
@@ -8,6 +9,10 @@ import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, typ
 import styles from "./review.module.css";
 
 const NAME_KEY = "vouch-display-name";
+
+function fieldFilled(field: CanvasField) {
+  return Boolean(sanitizeFieldValue(field.humanValue) || sanitizeFieldValue(field.modelValue));
+}
 
 export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState("");
@@ -20,11 +25,16 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [shareToken, setShareToken] = useState("");
   const [copied, setCopied] = useState(false);
   const [name, setName] = useState("");
+  const [named, setNamed] = useState(false);
+  const [typing, setTyping] = useState(false);
 
   useEffect(() => {
     params.then((p) => setId(p.id));
     const stored = parseDisplayName(window.localStorage.getItem(NAME_KEY));
-    if (stored) setName(stored);
+    if (stored) {
+      setName(stored);
+      setNamed(true);
+    }
   }, [params]);
 
   async function load(docId: string) {
@@ -44,7 +54,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     setTitle(receiptHeadline(nextFields, prettyTitle(json.document.title)));
     setStatus(json.document.status);
     setShareToken(json.document.shareToken ?? "");
-    if (json.document.error) setError(json.document.error);
+    const filled = nextFields.some(fieldFilled);
+    if (json.document.error && !filled) setError(json.document.error);
     else setError(null);
     setFields(nextFields);
     setClaims(
@@ -78,7 +89,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   async function claimLine(fieldId: string, stance: "owe" | "not_mine") {
     const displayName = parseDisplayName(name);
-    if (!displayName || !shareToken) {
+    if (!displayName || !named || !shareToken) {
       setError("Add your name before you vouch a line.");
       return;
     }
@@ -96,74 +107,99 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     await load(id);
   }
 
+  function confirmName() {
+    const next = parseDisplayName(name);
+    if (!next) return;
+    window.localStorage.setItem(NAME_KEY, next);
+    setName(next);
+    setNamed(true);
+    setError(null);
+  }
+
   const shareUrl = shareToken && typeof window !== "undefined" ? `${window.location.origin}/s/${shareToken}` : "";
   const reading = status === "processing" || status === "uploaded";
+  const hasValues = fields.some(fieldFilled);
+  const failedRead = Boolean(error) && !hasValues && !reading;
+  const showCanvas = page && (!failedRead || typing);
+  const showSplit = showCanvas && hasValues;
 
   return (
     <AppShell
       title={title}
       action={
-        <button
-          className="btn btn-primary"
-          type="button"
-          disabled={!shareUrl}
-          onClick={async () => {
-            await navigator.clipboard.writeText(shareUrl);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1600);
-          }}
-        >
-          {copied ? "Copied" : (
-            <>
-              <span className={styles.shareLong}>Share with housemates</span>
-              <span className={styles.shareShort}>Share</span>
-            </>
-          )}
-        </button>
+        failedRead && !hasValues ? undefined : (
+          <button
+            className="btn btn-primary"
+            type="button"
+            disabled={!shareUrl}
+            onClick={async () => {
+              await navigator.clipboard.writeText(shareUrl);
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 1600);
+            }}
+          >
+            {copied ? "Copied" : (
+              <>
+                <span className={styles.shareLong}>Share with housemates</span>
+                <span className={styles.shareShort}>Share</span>
+              </>
+            )}
+          </button>
+        )
       }
     >
-      {error ? <p className={styles.err}>{error}</p> : null}
-
-      {reading ? (
-        <p className={styles.note}>Reading the receipt. Line items land on the right when they are ready.</p>
+      {failedRead && !typing ? (
+        <section className={styles.fail}>
+          {page ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={page.imageUrl} alt="Receipt that could not be read" className={styles.failThumb} />
+          ) : null}
+          <p className={styles.failReason}>{error}</p>
+          <div className={styles.failActions}>
+            <Link className="btn btn-primary" href="/new">
+              Try another photo
+            </Link>
+            <button className="btn" type="button" onClick={() => setTyping(true)}>
+              I&apos;ll type it
+            </button>
+          </div>
+        </section>
       ) : (
-        <p className={styles.note}>Fix a wrong line if you need to. Then tap what you owe and send the link.</p>
+        <>
+          {error && !failedRead ? <p className={styles.err}>{error}</p> : null}
+
+          {reading ? (
+            <p className={styles.note}>Reading the receipt. Line items land on the right when they are ready.</p>
+          ) : typing && failedRead ? (
+            <p className={styles.note}>Type the lines you can see. Then tap what you owe and send the link.</p>
+          ) : (
+            <p className={styles.note}>Fix a wrong line if you need to. Then tap what you owe and send the link.</p>
+          )}
+
+          {showCanvas && page ? (
+            <div className={styles.stage}>
+              <ReviewCanvas
+                page={page}
+                fields={fields}
+                onSaveField={saveField}
+                onClaim={claimLine}
+                claims={claims}
+                displayName={named ? parseDisplayName(name) : null}
+                name={name}
+                onNameChange={(value) => {
+                  setName(value);
+                  setNamed(false);
+                }}
+                onConfirmName={confirmName}
+              />
+            </div>
+          ) : !reading ? (
+            <p className={styles.note}>No page to show yet.</p>
+          ) : null}
+
+          {showSplit ? <SplitBoard fields={fields} claims={claims} /> : null}
+        </>
       )}
-
-      {page ? (
-        <div className={styles.toolbar}>
-          <label className={styles.name}>
-            <span className="mono">you&apos;re splitting as</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onBlur={() => {
-                const next = parseDisplayName(name);
-                if (next) window.localStorage.setItem(NAME_KEY, next);
-              }}
-              placeholder="Ram"
-              maxLength={48}
-            />
-          </label>
-        </div>
-      ) : null}
-
-      {page ? (
-        <div className={styles.stage}>
-          <ReviewCanvas
-            page={page}
-            fields={fields}
-            onSaveField={saveField}
-            onClaim={claimLine}
-            claims={claims}
-            displayName={parseDisplayName(name)}
-          />
-        </div>
-      ) : !reading ? (
-        <p className={styles.note}>No page to show yet.</p>
-      ) : null}
-
-      {page ? <SplitBoard fields={fields} claims={claims} /> : null}
     </AppShell>
   );
 }
