@@ -2,11 +2,15 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { and, desc, eq } from "drizzle-orm";
+import { after } from "next/server";
 import { documents, jobs, templates } from "@proofsheet/db";
 import { SAMPLE_PAYMENT_PATH, SAMPLE_RECEIPT_PATH, templates as templateMeta } from "@proofsheet/interfaze";
 import { requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { tryProcessDocument } from "@/lib/extract";
 import { providerMode } from "@/lib/flags";
+
+export const maxDuration = 60;
 
 export async function GET() {
   try {
@@ -25,12 +29,16 @@ export async function GET() {
 async function saveUpload(file: File, origin: string) {
   const buf = Buffer.from(await file.arrayBuffer());
   if (buf.byteLength > 8 * 1024 * 1024) throw new Error("file too large");
-  const ext = file.type === "image/webp" ? "webp" : file.type === "image/png" ? "png" : "jpg";
+  const mime = file.type || "image/jpeg";
+  if (process.env.VERCEL) {
+    return { url: `data:${mime};base64,${buf.toString("base64")}`, mime };
+  }
+  const ext = mime === "image/webp" ? "webp" : mime === "image/png" ? "png" : "jpg";
   const dir = join(process.cwd(), "public", "uploads");
   await mkdir(dir, { recursive: true });
   const name = `${randomUUID()}.${ext}`;
   await writeFile(join(dir, name), buf);
-  return { url: `${origin}/uploads/${name}`, mime: file.type || "image/jpeg" };
+  return { url: `${origin}/uploads/${name}`, mime };
 }
 
 export async function POST(req: Request) {
@@ -94,6 +102,12 @@ export async function POST(req: Request) {
       status: "queued",
       payload: { slug },
     });
+
+    after(() =>
+      tryProcessDocument(db(), doc.id).catch((error) => {
+        console.error("[extract]", error);
+      }),
+    );
 
     return Response.json({ document: doc });
   } catch (error) {

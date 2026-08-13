@@ -1,7 +1,0 @@
-{
-  "name": "@proofsheet/eval",
-  "private": true,
-  "scripts": {
-    "start": "python3 -m uvicorn main:app --app-dir . --host 127.0.0.1 --port 8090"
-  }
-}

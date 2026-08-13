@@ -28,9 +28,6 @@ export function AppShell({
           <Link href="/inbox" className={pathname.startsWith("/inbox") || pathname.startsWith("/review") ? styles.active : undefined}>
             Queue
           </Link>
-          <Link href="/usage" className={pathname.startsWith("/usage") ? styles.active : undefined}>
-            Usage
-          </Link>
         </nav>
         <Link className="btn btn-primary" href="/new">
           New receipt

@@ -6,7 +6,6 @@
     "dev": "turbo dev",
     "dev:web": "pnpm --filter @proofsheet/web dev",
     "dev:worker": "pnpm --filter @proofsheet/worker dev",
-    "dev:eval": "pnpm --filter @proofsheet/eval start",
     "build": "turbo build",
     "db:migrate": "pnpm --filter @proofsheet/db migrate",
     "db:seed": "pnpm --filter @proofsheet/db seed",

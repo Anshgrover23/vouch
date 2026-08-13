@@ -3,7 +3,12 @@ import postgres from "postgres";
 import * as schema from "./schema";
 
 export function createDb(url: string, options?: { asService?: boolean }) {
-  const client = postgres(url, { max: options?.asService ? 4 : 8 });
+  const serverless = Boolean(process.env.VERCEL);
+  const pooled = /pooler/i.test(url);
+  const client = postgres(url, {
+    max: serverless ? 1 : options?.asService ? 4 : 8,
+    prepare: pooled ? false : undefined,
+  });
   return drizzle(client, { schema });
 }
 

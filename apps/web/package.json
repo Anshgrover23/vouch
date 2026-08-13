@@ -9,18 +9,14 @@
     "start": "next start --port 3000"
   },
   "dependencies": {
-    "@pothos/core": "^4.8.1",
     "@proofsheet/db": "workspace:*",
     "@proofsheet/interfaze": "workspace:*",
     "@proofsheet/ui": "workspace:*",
     "drizzle-orm": "^0.44.4",
-    "graphql": "^16.11.0",
-    "graphql-yoga": "^5.15.1",
     "next": "^15.4.6",
     "postgres": "^3.4.7",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "stripe": "^18.4.0",
     "zod": "^4.0.17"
   },
   "devDependencies": {

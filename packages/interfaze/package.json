@@ -6,9 +6,7 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {
-    "extract-id": "tsx src/extract-id.ts"
-  },
+  "scripts": {},
   "dependencies": {
     "interfaze": "^1.0.3",
     "zod": "^4.0.17"
