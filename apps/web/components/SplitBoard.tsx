@@ -54,9 +54,17 @@ export function SplitBoard({
                 <strong>{person.name}</strong>
                 <span>{formatMoney(person.total)}</span>
               </div>
-              <p className={styles.lines}>
-                {person.lines.map((line) => `${line.label} · ${formatMoney(line.share)}`).join("  ")}
+              <p className={styles.count}>
+                {person.lines.length === 1 ? "1 item" : `${person.lines.length} items`}
               </p>
+              <ul className={styles.ticks}>
+                {person.lines.map((line, i) => (
+                  <li key={`${person.name}-${i}`}>
+                    <em>{line.label}</em>
+                    <b>{formatMoney(line.share)}</b>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
           {leftover.length > 0 ? (
@@ -65,9 +73,17 @@ export function SplitBoard({
                 <strong>Still open</strong>
                 <span>{leftoverSum ? formatMoney(leftoverSum) : `${leftover.length} lines`}</span>
               </div>
-              <p className={styles.lines}>
-                {leftover.map((field) => field.label).filter(Boolean).join(" · ") || "Nobody has claimed these yet."}
+              <p className={styles.count}>
+                {leftover.length === 1 ? "1 item unclaimed" : `${leftover.length} items unclaimed`}
               </p>
+              <ul className={styles.ticks}>
+                {leftover.map((field) => (
+                  <li key={field.id ?? field.label}>
+                    <em>{field.label}</em>
+                    <b>{formatMoney(field.humanValue ?? field.modelValue)}</b>
+                  </li>
+                ))}
+              </ul>
             </li>
           ) : null}
         </ul>

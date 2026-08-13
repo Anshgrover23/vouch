@@ -32,7 +32,7 @@
   gap: 12px;
 }
 
-.people li {
+.people > li {
   padding: 14px 16px;
   border: 2px solid var(--color-ink);
   background: var(--color-paper);
@@ -61,11 +61,52 @@
   flex-shrink: 0;
 }
 
-.lines {
-  margin: 8px 0 0;
+.count {
+  margin: 2px 0 10px;
   color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ticks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  max-height: 14.5rem;
+  overflow: auto;
+}
+
+.ticks li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  padding: 7px 0;
+  border: 0;
+  border-top: 1px solid var(--color-rule);
+  background: transparent;
+  box-shadow: none;
+}
+
+.ticks em {
+  font-style: normal;
+  color: var(--color-ink-2);
   font-size: var(--text-sm);
   overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.ticks b {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+  flex-shrink: 0;
 }
 
 .open {
