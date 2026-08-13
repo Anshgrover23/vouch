@@ -41,6 +41,24 @@
   min-width: 0;
 }
 
+.github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-ink);
+  padding: 6px;
+  line-height: 0;
+}
+
+.github:hover {
+  color: var(--color-muted);
+}
+
+.github:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
 .splits {
   font-family: var(--font-display);
   font-weight: 800;
@@ -68,6 +86,56 @@
   background: var(--color-paper);
 }
 
+.ftMeta,
+.ftCredits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  min-width: 0;
+}
+
+.ft a {
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.ft a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ft a:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+.ftLink,
+.powered,
+.powered a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.powered {
+  gap: 12px;
+}
+
+.interfaze {
+  display: block;
+  height: 18px;
+  width: auto;
+}
+
+.yc {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-ink);
+}
+
 @media (max-width: 414px) {
   .nav {
     padding: 10px 12px;
@@ -81,5 +149,9 @@
   .nav :global(.btn) {
     padding: 10px 12px;
     white-space: nowrap;
+  }
+
+  .ft {
+    padding: 16px 12px;
   }
 }
