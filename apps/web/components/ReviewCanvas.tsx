@@ -135,22 +135,24 @@ function Source() {
     });
 
   return (
-    <div className={styles.stage} style={{ aspectRatio: `${page.width} / ${page.height}` }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={page.imageUrl} alt="Source document" />
-      <svg viewBox={`0 0 ${page.width} ${page.height}`} aria-hidden="true">
-        {boxes.map((b) => (
-          <rect
-            key={b.id}
-            x={b.x}
-            y={b.y}
-            width={b.w}
-            height={b.h}
-            className={`${styles.box} ${b.low ? styles.boxLow : ""} ${b.id === active ? styles.boxActive : ""}`}
-            onClick={() => setActive(b.id)}
-          />
-        ))}
-      </svg>
+    <div className={styles.photo}>
+      <div className={styles.photoInner}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={page.imageUrl} alt="Receipt" />
+        <svg viewBox={`0 0 ${page.width} ${page.height}`} aria-hidden="true">
+          {boxes.map((b) => (
+            <rect
+              key={b.id}
+              x={b.x}
+              y={b.y}
+              width={b.w}
+              height={b.h}
+              className={`${styles.box} ${b.low ? styles.boxLow : ""} ${b.id === active ? styles.boxActive : ""}`}
+              onClick={() => setActive(b.id)}
+            />
+          ))}
+        </svg>
+      </div>
     </div>
   );
 }
@@ -198,9 +200,7 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
           <li key={f.id} className={f.id === active ? `${styles.field} ${styles.fieldActive}` : styles.field}>
             <button type="button" className={styles.head} onClick={() => setActive(f.id)}>
               <span>{f.label}</span>
-              <span className={`${styles.chip} ${low ? styles.warn : styles.ok}`}>
-                {empty || f.confidence == null || f.confidence === 0 ? "—" : f.confidence.toFixed(2)}
-              </span>
+              {low ? <span className={`${styles.chip} ${styles.warn}`}>Check this</span> : null}
             </button>
             {readOnly ? <p className={styles.value}>{display}</p> : (
               <div className={styles.edit}>
@@ -208,12 +208,14 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
                   value={value}
                   onChange={(e) => setDraft(f.id, e.target.value)}
                   onFocus={() => setActive(f.id)}
+                  onBlur={() => {
+                    const original = sanitizeFieldValue(f.humanValue) || sanitizeFieldValue(f.modelValue);
+                    if (value !== original) void save(f.id);
+                  }}
                   aria-label={f.label}
                   placeholder="Type what you see"
                 />
-                <button type="button" className="btn" disabled={saving === f.id} onClick={() => save(f.id)}>
-                  {saving === f.id ? "Saving" : "Save"}
-                </button>
+                {saving === f.id ? <p className={styles.hint}>Saving…</p> : null}
                 {f.humanValue ? <p className={styles.hint}>Original reading: {f.modelValue}</p> : null}
               </div>
             )}

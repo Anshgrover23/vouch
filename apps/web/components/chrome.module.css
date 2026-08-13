@@ -28,6 +28,24 @@
   color: var(--color-ink);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.splits {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--color-ink);
+  padding: 8px 4px;
+}
+
 .ft {
   display: flex;
   justify-content: space-between;
@@ -45,7 +63,17 @@
 }
 
 @media (max-width: 414px) {
+  .nav {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
   .nav :global(.btn) {
     padding: 10px 12px;
+    white-space: nowrap;
   }
 }

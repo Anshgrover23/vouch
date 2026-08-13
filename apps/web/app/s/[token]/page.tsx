@@ -4,7 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/Brand";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
-import { exportLine, parseDisplayName, sanitizeFieldValue, type SplitClaim } from "@/lib/split";
+import { SplitBoard } from "@/components/SplitBoard";
+import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type SplitClaim } from "@/lib/split";
 import styles from "./split.module.css";
 
 const NAME_KEY = "vouch-display-name";
@@ -18,7 +19,6 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [joined, setJoined] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     params.then((p) => setToken(p.token));
@@ -36,24 +36,14 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
       return;
     }
     const json = await res.json();
-    setTitle(json.document.title);
-    setFields(
-      json.fields.map((f: {
-        id: string;
-        key: string;
-        label: string;
-        modelValue: string | null;
-        humanValue: string | null;
-        confidence: string | null;
-        bounds: CanvasField["bounds"];
-        status: string;
-      }) => ({
-        ...f,
-        modelValue: sanitizeFieldValue(f.modelValue) || null,
-        humanValue: sanitizeFieldValue(f.humanValue) || null,
-        confidence: f.confidence == null ? null : Number(f.confidence),
-      })),
-    );
+    const nextFields = json.fields.map((f: CanvasField & { confidence: string | null }) => ({
+      ...f,
+      modelValue: sanitizeFieldValue(f.modelValue) || null,
+      humanValue: sanitizeFieldValue(f.humanValue) || null,
+      confidence: f.confidence == null ? null : Number(f.confidence),
+    }));
+    setTitle(receiptHeadline(nextFields, prettyTitle(json.document.title)));
+    setFields(nextFields);
     setClaims(
       (json.claims ?? []).map((c: SplitClaim) => ({
         fieldId: c.fieldId,
@@ -69,9 +59,22 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
   useEffect(() => {
     if (!token) return;
     load(token);
-    const t = setInterval(() => load(token), 2000);
+    const t = setInterval(() => load(token), 4000);
     return () => clearInterval(t);
   }, [token]);
+
+  async function saveField(fieldId: string, value: string) {
+    const res = await fetch(`/api/splits/${token}/fields`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fieldId, value }),
+    });
+    if (!res.ok) {
+      setError("Could not save that line.");
+      return;
+    }
+    await load(token);
+  }
 
   async function claimLine(fieldId: string, stance: "owe" | "not_mine") {
     const displayName = parseDisplayName(name);
@@ -105,7 +108,6 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
     setError(null);
   }
 
-  const split = exportLine(fields, claims);
   const displayName = parseDisplayName(name);
 
   return (
@@ -124,9 +126,9 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
         <form className={styles.gate} onSubmit={join}>
           <p className="mono">join this split</p>
           <h2>What should housemates see?</h2>
-          <p>A display name only. No account.</p>
+          <p>A first name only. No account yet.</p>
           <label>
-            <span className="mono">display name</span>
+            <span className="mono">your name</span>
             <input value={name} onChange={(e) => setName(e.target.value)} maxLength={48} placeholder="Rio" autoFocus />
           </label>
           <button className="btn btn-primary" type="submit">
@@ -139,32 +141,18 @@ export default function SharePage({ params }: { params: Promise<{ token: string 
 
       {joined && page ? (
         <>
-          <p className={styles.note}>Tap the lines you actually owe. Low-confidence lines stay flagged on the paper.</p>
+          <p className={styles.note}>Tap the lines you owe. Fix a price if the reading is wrong — everyone on this link can.</p>
           <div className={styles.stage}>
             <ReviewCanvas
               page={page}
               fields={fields}
-              readOnly
               claims={claims}
               displayName={displayName}
+              onSaveField={saveField}
               onClaim={claimLine}
             />
           </div>
-          <div className={styles.export}>
-            <p className="mono">split</p>
-            <p className={styles.exportLine}>{split}</p>
-            <button
-              className="btn"
-              type="button"
-              onClick={async () => {
-                await navigator.clipboard.writeText(split);
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1600);
-              }}
-            >
-              {copied ? "Copied" : "Copy split"}
-            </button>
-          </div>
+          <SplitBoard fields={fields} claims={claims} />
         </>
       ) : null}
     </div>

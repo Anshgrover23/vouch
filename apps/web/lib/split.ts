@@ -1,8 +1,15 @@
 export type SplitField = {
+  id?: string;
   key: string;
   label: string;
   modelValue: string | null;
   humanValue: string | null;
+};
+
+export type PersonShare = {
+  name: string;
+  total: number;
+  lines: Array<{ label: string; share: number }>;
 };
 
 export type SplitClaim = {
@@ -56,7 +63,7 @@ export function shortDate(raw: string) {
   return raw;
 }
 
-export function vouchedCount(claims: SplitClaim[]) {
+export function vouchedCount(claims: Array<{ displayName: string }>) {
   return new Set(claims.map((c) => c.displayName)).size;
 }
 
@@ -84,4 +91,61 @@ export function parseDisplayName(raw: unknown) {
   const name = String(raw ?? "").trim().replace(/\s+/g, " ");
   if (name.length < 1 || name.length > 48) return null;
   return name;
+}
+
+export function prettyTitle(raw: string) {
+  const name = raw.trim();
+  if (!name) return "Receipt";
+  if (/^screenshot/i.test(name) || /\.(png|jpe?g|webp)$/i.test(name)) return "Receipt";
+  return name.replace(/\.[a-z0-9]+$/i, "");
+}
+
+export function receiptHeadline(fields: SplitField[], fallback = "Receipt") {
+  return fieldValue(fields, "merchant") || fieldValue(fields, "recipient") || prettyTitle(fallback);
+}
+
+function lineAmount(field: SplitField) {
+  return parseMoney(sanitizeFieldValue(field.humanValue) || sanitizeFieldValue(field.modelValue));
+}
+
+function lineLabel(field: SplitField) {
+  const name = (field.label ?? "").trim();
+  if (name && parseMoney(name) == null) return name;
+  const text = sanitizeFieldValue(field.humanValue) || sanitizeFieldValue(field.modelValue);
+  if (text && parseMoney(text) == null) return text;
+  return name || "Item";
+}
+
+export function personShares(fields: SplitField[], claims: SplitClaim[]): PersonShare[] {
+  const byName = new Map<string, PersonShare>();
+  for (const field of fields) {
+    if (!field.id || !isClaimableKey(field.key)) continue;
+    const amount = lineAmount(field);
+    if (amount == null) continue;
+    const owing = claims.filter((c) => c.fieldId === field.id && c.stance === "owe");
+    if (owing.length === 0) continue;
+    const each = amount / owing.length;
+    for (const claim of owing) {
+      const row = byName.get(claim.displayName) ?? { name: claim.displayName, total: 0, lines: [] };
+      row.total += each;
+      row.lines.push({ label: lineLabel(field), share: each });
+      byName.set(claim.displayName, row);
+    }
+  }
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function unclaimedLines(fields: SplitField[], claims: SplitClaim[]) {
+  return fields.filter((field) => {
+    if (!field.id || !isClaimableKey(field.key)) return false;
+    if (lineAmount(field) == null) return false;
+    return !claims.some((c) => c.fieldId === field.id && c.stance === "owe");
+  });
+}
+
+export function chatSplit(fields: SplitField[], claims: SplitClaim[]) {
+  const people = personShares(fields, claims);
+  const head = exportLine(fields, claims);
+  if (people.length === 0) return head;
+  return `${head}\n${people.map((p) => `${p.name} ${formatMoney(p.total)}`).join(" · ")}`;
 }

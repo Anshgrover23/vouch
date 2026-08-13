@@ -1,26 +1,39 @@
+/* Hallmark · pre-emit critique: P4 H5 E5 S5 R4 V4 */
 .canvas {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.85fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  height: 100%;
+  min-height: 0;
   min-width: 0;
 }
 
 .compact {
-  grid-template-columns: minmax(0, 1.1fr) minmax(180px, 0.9fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(240px, 0.9fr);
 }
 
-.stage {
-  position: relative;
-  width: 100%;
+.photo,
+.fields {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+.photo {
   background: var(--color-paper-3);
 }
 
-.stage img {
+.photoInner {
+  position: relative;
+  width: 100%;
+}
+
+.photoInner img {
   display: block;
   width: 100%;
   height: auto;
 }
 
-.stage svg {
+.photoInner svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -50,17 +63,15 @@
   padding: 0;
   border-left: 3px solid var(--color-ink);
   background: var(--color-paper-2);
-  max-height: 480px;
-  overflow: auto;
 }
 
 .field {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--color-rule);
 }
 
 .fieldActive {
-  background: var(--color-paper-2);
+  background: color-mix(in oklch, var(--color-lime) 28%, var(--color-paper-2));
 }
 
 .head {
@@ -186,11 +197,34 @@
   .canvas,
   .compact {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 0;
+  }
+
+  .photo {
+    height: min(42dvh, 420px);
   }
 
   .fields {
-    border-left: 0;
-    border-top: 1px solid var(--color-rule);
+    height: auto;
     max-height: none;
+    border-left: 0;
+    border-top: 3px solid var(--color-ink);
+  }
+
+  .claims {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .claim {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .edit input {
+    font-size: 16px;
   }
 }

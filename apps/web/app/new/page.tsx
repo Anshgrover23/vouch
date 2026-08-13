@@ -103,7 +103,6 @@ export default function NewReceiptPage() {
     <>
       <SiteNav />
       <main className={styles.page}>
-        <p className={styles.step}>Step 1 of 2</p>
         <h1>Show us the paper.</h1>
         <p className={styles.lede}>
           Drop a photo of the receipt — or a Venmo/Zelle screenshot. AI pulls every line item onto the page.

@@ -5,21 +5,6 @@
   overflow-x: clip;
 }
 
-.step {
-  display: inline-block;
-  margin: 0 0 16px;
-  background: var(--color-lime);
-  color: var(--color-lime-ink);
-  border: 2px solid var(--color-ink);
-  box-shadow: var(--shadow-hard-sm);
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 6px 10px;
-}
-
 .page h1 {
   margin: 0 0 12px;
   font-size: clamp(2.2rem, 8vw, 3.6rem);

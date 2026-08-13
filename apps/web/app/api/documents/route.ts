@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { after } from "next/server";
-import { documents, jobs, templates } from "@proofsheet/db";
+import { documents, fields, jobs, splitClaims, templates } from "@proofsheet/db";
 import { SAMPLE_PAYMENT_PATH, SAMPLE_RECEIPT_PATH, templates as templateMeta } from "@proofsheet/interfaze";
 import { requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tryProcessDocument } from "@/lib/extract";
 import { providerMode } from "@/lib/flags";
+import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouchedCount } from "@/lib/split";
 
 export const maxDuration = 60;
 
@@ -20,7 +21,47 @@ export async function GET() {
       .from(documents)
       .where(eq(documents.workspaceId, session.workspaceId))
       .orderBy(desc(documents.createdAt));
-    return Response.json({ documents: rows, mode: providerMode() });
+    const ids = rows.map((row) => row.id);
+    const [fieldRows, claimRows] = ids.length
+      ? await Promise.all([
+          db().select().from(fields).where(inArray(fields.documentId, ids)),
+          db()
+            .select({ documentId: splitClaims.documentId, displayName: splitClaims.displayName })
+            .from(splitClaims)
+            .where(inArray(splitClaims.documentId, ids)),
+        ])
+      : [[], []];
+
+    const fieldsByDoc = new Map<string, typeof fieldRows>();
+    for (const field of fieldRows) {
+      const list = fieldsByDoc.get(field.documentId) ?? [];
+      list.push(field);
+      fieldsByDoc.set(field.documentId, list);
+    }
+    const claimsByDoc = new Map<string, { displayName: string }[]>();
+    for (const claim of claimRows) {
+      const list = claimsByDoc.get(claim.documentId) ?? [];
+      list.push(claim);
+      claimsByDoc.set(claim.documentId, list);
+    }
+
+    return Response.json({
+      documents: rows.map((doc) => {
+        const docFields = fieldsByDoc.get(doc.id) ?? [];
+        const docClaims = claimsByDoc.get(doc.id) ?? [];
+        return {
+          id: doc.id,
+          status: doc.status,
+          createdAt: doc.createdAt,
+          error: doc.error,
+          merchant: receiptHeadline(docFields, prettyTitle(doc.title)),
+          date: shortDate(fieldValue(docFields, "date")),
+          total: formatMoney(fieldValue(docFields, "total") || fieldValue(docFields, "amount")),
+          people: vouchedCount(docClaims),
+        };
+      }),
+      mode: providerMode(),
+    });
   } catch {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }

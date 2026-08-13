@@ -82,8 +82,8 @@ export default function LandingPage() {
               <p className="mono">
                 <IconShare /> Step 03
               </p>
-              <h3>Copy the split</h3>
-              <p>When people have vouched, you get a line for the chat: merchant, date, total, how many vouched.</p>
+              <h3>See who owes what</h3>
+              <p>Send the link. Housemates tap their lines. The chat gets a clean split, not a fight.</p>
             </article>
           </div>
         </section>

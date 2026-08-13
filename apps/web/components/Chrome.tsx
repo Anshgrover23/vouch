@@ -11,9 +11,14 @@ export function SiteNav() {
         <BrandMark />
         Vouch
       </Link>
-      <Link className="btn btn-primary" href="/new">
-        New receipt
-      </Link>
+      <div className={styles.actions}>
+        <Link href="/inbox" className={styles.splits}>
+          Splits
+        </Link>
+        <Link className="btn btn-primary" href="/new">
+          New receipt
+        </Link>
+      </div>
     </header>
   );
 }

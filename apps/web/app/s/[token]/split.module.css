@@ -1,7 +1,7 @@
 .page {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 24px var(--space-lg) var(--space-3xl);
+  padding: 20px var(--space-lg) 48px;
   overflow-x: clip;
 }
 
@@ -49,6 +49,13 @@
   box-shadow: var(--shadow-card);
   overflow: hidden;
   background: var(--color-paper-2);
+  height: calc(100dvh - 180px);
+  min-height: 520px;
+}
+
+.stage > * {
+  height: 100%;
+  min-height: 0;
 }
 
 .gate {
@@ -102,8 +109,37 @@
   overflow-wrap: anywhere;
 }
 
+@media (max-width: 768px) {
+  .page {
+    padding: 12px 12px 32px;
+  }
+
+  .top {
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+
+  .top h1 {
+    width: 100%;
+    font-size: 1.15rem;
+  }
+
+  .stage {
+    height: auto;
+    min-height: 0;
+  }
+
+  .stage > * {
+    height: auto;
+  }
+}
+
 @media (max-width: 414px) {
   .gate :global(.btn) {
     width: 100%;
+  }
+
+  .gate input {
+    font-size: 16px;
   }
 }

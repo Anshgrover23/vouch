@@ -20,13 +20,13 @@ export function AppShell({
   return (
     <div className={styles.frame}>
       <header className={styles.top}>
-        <Link href="/" className={styles.brand}>
+        <Link href="/inbox" className={styles.brand}>
           <BrandMark />
           Vouch
         </Link>
         <nav className={styles.nav}>
           <Link href="/inbox" className={pathname.startsWith("/inbox") || pathname.startsWith("/review") ? styles.active : undefined}>
-            Queue
+            Splits
           </Link>
         </nav>
         <Link className="btn btn-primary" href="/new">
