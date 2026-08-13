@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "scripts": {},
+  "scripts": {
+    "test": "tsx --test src/*.test.ts"
+  },
   "dependencies": {
     "interfaze": "^1.0.3",
     "zod": "^4.0.17"
