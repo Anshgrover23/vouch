@@ -1,0 +1,107 @@
+/* Hallmark · component: sheet · genre: playful · theme: studied-DNA
+ * states: default · hover · focus · active · disabled · loading · error · success
+ * contrast: pass (46–50)
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--space-lg);
+  background: var(--color-overlay);
+}
+
+.sheet {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 28rem);
+  display: grid;
+  gap: 12px;
+  padding: 22px 20px 20px;
+  border: 3px solid var(--color-ink);
+  background: var(--color-paper-2);
+  box-shadow: var(--shadow-card);
+  max-height: min(90dvh, 40rem);
+  overflow: auto;
+}
+
+.sheet h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 6vw, 2.4rem);
+  overflow-wrap: anywhere;
+}
+
+.lede {
+  margin: 0;
+  color: var(--color-muted);
+  max-width: 42ch;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.friend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.friend label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.friend input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 2px solid var(--color-ink);
+  padding: 10px 12px;
+  font: 400 1rem var(--font-body);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.friend input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.friend button:disabled,
+.actions :global(.btn:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 414px) {
+  .overlay {
+    padding: var(--space-md);
+    place-items: center;
+  }
+
+  .actions :global(.btn),
+  .friend {
+    grid-template-columns: 1fr;
+  }
+
+  .actions :global(.btn),
+  .friend :global(.btn) {
+    width: 100%;
+  }
+
+  .friend input {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .sheet {
+    transition: none;
+  }
+}

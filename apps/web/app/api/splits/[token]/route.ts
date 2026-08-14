@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { documentPages, documents, fields, splitClaims } from "@proofsheet/db";
 import { db } from "@/lib/db";
 import { displayImageUrl } from "@/lib/image-response";
+import { syncRemainderField, visibleFields } from "@/lib/remainder";
 import { exportLine } from "@/lib/split";
 
 export async function GET(_: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -12,7 +13,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ token: str
   if (!doc) return Response.json({ error: "not found" }, { status: 404 });
 
   const pages = await db().select().from(documentPages).where(eq(documentPages.documentId, doc.id));
-  const fieldRows = await db().select().from(fields).where(eq(fields.documentId, doc.id));
+  await syncRemainderField(db(), doc.id, doc.workspaceId);
+  const fieldRows = visibleFields(await db().select().from(fields).where(eq(fields.documentId, doc.id)));
   const claims = await db().select().from(splitClaims).where(eq(splitClaims.documentId, doc.id));
 
   return Response.json({

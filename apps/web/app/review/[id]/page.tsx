@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
+import { Invite } from "@/components/InviteSheet";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
 import { SplitBoard } from "@/components/SplitBoard";
-import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type SplitClaim } from "@/lib/split";
+import { NAME_KEY, commitSplitName } from "@/lib/identity";
+import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type ClaimStance, type SplitClaim } from "@/lib/split";
 import styles from "./review.module.css";
-
-const NAME_KEY = "vouch-display-name";
 
 function fieldFilled(field: CanvasField) {
   return Boolean(sanitizeFieldValue(field.humanValue) || sanitizeFieldValue(field.modelValue));
@@ -25,16 +25,26 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [shareToken, setShareToken] = useState("");
   const [copied, setCopied] = useState(false);
   const [name, setName] = useState("");
-  const [named, setNamed] = useState(false);
+  const [confirmed, setConfirmed] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteSeen, setInviteSeen] = useState(false);
+  const [waiting, setWaiting] = useState<string[]>([]);
+  const [paidByName, setPaidByName] = useState("");
+  const [people, setPeople] = useState<string[]>([]);
 
   useEffect(() => {
     params.then((p) => setId(p.id));
     const stored = parseDisplayName(window.localStorage.getItem(NAME_KEY));
-    if (stored) {
-      setName(stored);
-      setNamed(true);
-    }
+    if (stored) setName(stored);
+    void fetch("/api/auth/me", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : { session: null }))
+      .then((json: { session?: { displayName?: string } | null }) => {
+        const account = parseDisplayName(json.session?.displayName);
+        if (!account) return;
+        setName((current) => current || account);
+      })
+      .catch(() => {});
   }, [params]);
 
   async function load(docId: string) {
@@ -65,6 +75,17 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         stance: c.stance,
       })),
     );
+    setWaiting(
+      ((json.waiting ?? []) as Array<{ displayName?: string }>)
+        .map((row) => parseDisplayName(row.displayName))
+        .filter((row): row is string => Boolean(row)),
+    );
+    setPaidByName(typeof json.document.paidByName === "string" ? json.document.paidByName : "");
+    setPeople(
+      ((json.people ?? []) as unknown[])
+        .map((row) => parseDisplayName(row))
+        .filter((row): row is string => Boolean(row)),
+    );
     const first = json.pages[0];
     if (first) setPage({ imageUrl: first.imageUrl, width: first.width, height: first.height });
   }
@@ -72,10 +93,20 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     if (!id) return;
     load(id);
-    if (status !== "uploaded" && status !== "processing") return;
-    const t = setInterval(() => load(id), 1500);
+    const ms = status === "uploaded" || status === "processing" ? 1500 : 4000;
+    const t = setInterval(() => load(id), ms);
     return () => clearInterval(t);
   }, [id, status]);
+
+  const reading = status === "processing" || status === "uploaded";
+  const hasValues = fields.some(fieldFilled);
+  const failedRead = Boolean(error) && !hasValues && !reading;
+  const showCanvas = page && (!failedRead || typing);
+  const showSplit = showCanvas && hasValues;
+
+  useEffect(() => {
+    if (hasValues && !reading && !inviteSeen) setInviteOpen(true);
+  }, [hasValues, reading, inviteSeen]);
 
   async function saveField(fieldId: string, value: string) {
     await fetch(`/api/documents/${id}/fields`, {
@@ -87,13 +118,54 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     await load(id);
   }
 
-  async function claimLine(fieldId: string, stance: "owe" | "not_mine") {
-    const displayName = parseDisplayName(name);
-    if (!displayName || !named || !shareToken) {
+  async function renameField(fieldId: string, label: string) {
+    const res = await fetch(`/api/documents/${id}/fields`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fieldId, label }),
+    });
+    if (!res.ok) {
+      setError("Could not rename that line.");
+      return;
+    }
+    setError(null);
+    await load(id);
+  }
+
+  async function removeField(fieldId: string) {
+    const res = await fetch(`/api/documents/${id}/fields`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fieldId, ignored: true }),
+    });
+    if (!res.ok) {
+      setError("Could not remove that line.");
+      return;
+    }
+    setError(null);
+    await load(id);
+  }
+
+  async function savePaidBy(next: string) {
+    const parsed = parseDisplayName(next);
+    if (!parsed || !id) return;
+    setPaidByName(parsed);
+    await fetch(`/api/documents/${id}`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ paidByName: parsed }),
+    });
+  }
+
+  async function claimLine(fieldId: string, stance: ClaimStance) {
+    const displayName = confirmed;
+    if (!displayName || !shareToken) {
       setError("Add your name before you vouch a line.");
       return;
     }
-    window.localStorage.setItem(NAME_KEY, displayName);
     const res = await fetch(`/api/splits/${shareToken}/claims`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -107,21 +179,51 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     await load(id);
   }
 
-  function confirmName() {
+  async function confirmName() {
     const next = parseDisplayName(name);
     if (!next) return;
-    window.localStorage.setItem(NAME_KEY, next);
-    setName(next);
-    setNamed(true);
+    if (shareToken) {
+      const result = await commitSplitName(shareToken, confirmed, next);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      window.localStorage.setItem(NAME_KEY, result.name);
+      setName(result.name);
+      setConfirmed(result.name);
+      await load(id);
+    } else {
+      window.localStorage.setItem(NAME_KEY, next);
+      setName(next);
+      setConfirmed(next);
+    }
     setError(null);
   }
 
+  const dismissInvite = useCallback(() => {
+    setInviteOpen(false);
+    setInviteSeen(true);
+  }, []);
+
+  const addFriend = useCallback(
+    async (displayName: string) => {
+      const res = await fetch(`/api/documents/${id}/invites`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ displayName }),
+      });
+      if (!res.ok) {
+        setError("Could not add that friend.");
+        return;
+      }
+      setError(null);
+      await load(id);
+    },
+    [id],
+  );
+
   const shareUrl = shareToken && typeof window !== "undefined" ? `${window.location.origin}/s/${shareToken}` : "";
-  const reading = status === "processing" || status === "uploaded";
-  const hasValues = fields.some(fieldFilled);
-  const failedRead = Boolean(error) && !hasValues && !reading;
-  const showCanvas = page && (!failedRead || typing);
-  const showSplit = showCanvas && hasValues;
 
   return (
     <AppShell
@@ -140,7 +242,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           >
             {copied ? "Copied" : (
               <>
-                <span className={styles.shareLong}>Share with housemates</span>
+                <span className={styles.shareLong}>Share with friends</span>
                 <span className={styles.shareShort}>Share</span>
               </>
             )}
@@ -173,7 +275,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           ) : typing && failedRead ? (
             <p className={styles.note}>Type the lines you can see. Then tap what you owe and send the link.</p>
           ) : (
-            <p className={styles.note}>Fix a wrong line if you need to. Then tap what you owe and send the link.</p>
+            <p className={styles.note}>
+              Type 60 and tap I owe this — that person owes $60. Split equally only if you are sharing the same line.
+            </p>
           )}
 
           {showCanvas && page ? (
@@ -182,22 +286,47 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 page={page}
                 fields={fields}
                 onSaveField={saveField}
+                onRenameField={renameField}
+                onRemoveField={removeField}
                 onClaim={claimLine}
                 claims={claims}
-                displayName={named ? parseDisplayName(name) : null}
+                displayName={confirmed}
                 name={name}
-                onNameChange={(value) => {
-                  setName(value);
-                  setNamed(false);
-                }}
-                onConfirmName={confirmName}
+                onNameChange={setName}
+                onConfirmName={() => void confirmName()}
+                paidByName={paidByName}
+                people={people}
+                onPaidByChange={(next) => void savePaidBy(next)}
               />
             </div>
           ) : !reading ? (
             <p className={styles.note}>No page to show yet.</p>
           ) : null}
 
-          {showSplit ? <SplitBoard fields={fields} claims={claims} /> : null}
+          {showSplit ? (
+            <SplitBoard fields={fields} claims={claims}>
+              {waiting.length > 0 ? (
+                <p className={styles.waiting} data-testid="waiting-banner">
+                  Waiting for {waiting.join(", ")}
+                </p>
+              ) : null}
+            </SplitBoard>
+          ) : null}
+
+          {inviteOpen && shareUrl ? (
+            <Invite.Root shareUrl={shareUrl} onDismiss={dismissInvite} onAddFriend={addFriend}>
+              <Invite.Frame>
+                <Invite.Title />
+                <Invite.Lede />
+                <Invite.Friend />
+                <Invite.Actions>
+                  <Invite.WhatsApp />
+                  <Invite.CopyLink />
+                  <Invite.Dismiss />
+                </Invite.Actions>
+              </Invite.Frame>
+            </Invite.Root>
+          ) : null}
         </>
       )}
     </AppShell>

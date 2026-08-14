@@ -27,7 +27,11 @@ const groceryItems = [
   { name: "GREEK YOGURT", price: "9.99", y: 836, confidence: 0.92 },
 ];
 
-const groceryFields: ExtractedField[] = [
+export const GROCERY_LINE_ITEMS = groceryItems;
+export const GROCERY_TOTAL = "84.20";
+export const GROCERY_ITEMS_SUM = 74.63;
+export const GROCERY_REMAINDER = 9.57;
+export const groceryFields: ExtractedField[] = [
   { key: "merchant", label: fieldLabels.merchant, value: "HILLCREST MARKET", confidence: 0.99, bounds: box(180, 78, 660, 72) },
   { key: "date", label: fieldLabels.date, value: "AUG 13 2026", confidence: 0.96, bounds: box(300, 292, 424, 40) },
   ...groceryItems.map((item, i) => ({

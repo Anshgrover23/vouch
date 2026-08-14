@@ -18,6 +18,8 @@ export type SplitClaim = {
   stance: string;
 };
 
+export type ClaimStance = "owe" | "not_mine" | "split";
+
 export function sanitizeFieldValue(raw: string | null | undefined) {
   const text = (raw ?? "").trim();
   if (!text || /^(null|undefined|none|n\/a|nil|unknown|-)$/i.test(text)) return "";
@@ -80,17 +82,72 @@ export function lineShare(price: string, claims: SplitClaim[], fieldId: string) 
   const amount = parseMoney(price);
   const owing = claims.filter((c) => c.fieldId === fieldId && c.stance === "owe");
   if (amount == null || owing.length === 0) return null;
-  return { each: amount / owing.length, names: owing.map((c) => c.displayName) };
+  return { each: roundMoney(amount / owing.length), names: owing.map((c) => c.displayName), split: owing.length > 1 };
 }
 
 export function isClaimableKey(key: string) {
+  return key === "amount" || key === "remainder" || /^item_\d+$/.test(key);
+}
+
+export function isMoneyEditKey(key: string) {
   return key === "amount" || /^item_\d+$/.test(key);
 }
 
-export function parseDisplayName(raw: unknown) {
+export function isReceiptTotalSourceKey(key: string) {
+  return isItemRowKey(key) || key === "tax" || key === "tip";
+}
+
+export function isLineItemKey(key: string) {
+  return key === "amount" || /^item_\d+$/.test(key);
+}
+
+export function isItemRowKey(key: string) {
+  return /^item_\d+$/.test(key);
+}
+
+const HEADER_KEYS = ["merchant", "recipient", "sender", "date", "status", "note"];
+const FOOTER_KEYS = ["subtotal", "tax", "tip", "total", "remainder"];
+
+export function isMoneyMetaKey(key: string) {
+  return key === "total" || key === "tax" || key === "tip" || key === "subtotal";
+}
+
+export function receiptFieldSection(key: string): "header" | "items" | "footer" {
+  if (isItemRowKey(key) || key === "amount") return "items";
+  if (FOOTER_KEYS.includes(key)) return "footer";
+  return "header";
+}
+
+function keyRank(order: string[], key: string) {
+  const index = order.indexOf(key);
+  return index === -1 ? order.length : index;
+}
+
+export function partitionReceiptFields<T extends { key: string }>(fields: T[]) {
+  const header: T[] = [];
+  const items: T[] = [];
+  const footer: T[] = [];
+  for (const field of fields) {
+    const section = receiptFieldSection(field.key);
+    if (section === "header") header.push(field);
+    else if (section === "footer") footer.push(field);
+    else items.push(field);
+  }
+  header.sort((a, b) => keyRank(HEADER_KEYS, a.key) - keyRank(HEADER_KEYS, b.key));
+  footer.sort((a, b) => keyRank(FOOTER_KEYS, a.key) - keyRank(FOOTER_KEYS, b.key));
+  return { header, items, footer };
+}
+
+export function displayNameIssue(raw: unknown) {
   const name = String(raw ?? "").trim().replace(/\s+/g, " ");
-  if (name.length < 1 || name.length > 48) return null;
-  return name;
+  if (!name) return "Enter your name.";
+  if (name.length > 48) return "Keep it under 48 characters.";
+  return null;
+}
+
+export function parseDisplayName(raw: unknown) {
+  if (displayNameIssue(raw)) return null;
+  return String(raw ?? "").trim().replace(/\s+/g, " ");
 }
 
 export function prettyTitle(raw: string) {
@@ -124,7 +181,7 @@ export function personShares(fields: SplitField[], claims: SplitClaim[]): Person
     if (amount == null) continue;
     const owing = claims.filter((c) => c.fieldId === field.id && c.stance === "owe");
     if (owing.length === 0) continue;
-    const each = amount / owing.length;
+    const each = roundMoney(amount / owing.length);
     for (const claim of owing) {
       const row = byName.get(claim.displayName) ?? { name: claim.displayName, total: 0, lines: [] };
       row.total += each;
@@ -143,9 +200,71 @@ export function unclaimedLines(fields: SplitField[], claims: SplitClaim[]) {
   });
 }
 
+export function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+export function receiptTotal(fields: SplitField[]) {
+  return parseMoney(fieldValue(fields, "total") || fieldValue(fields, "amount"));
+}
+
+export function lineItemsSum(fields: SplitField[]) {
+  let sum = 0;
+  for (const field of fields) {
+    if (!isLineItemKey(field.key)) continue;
+    const amount = lineAmount(field);
+    if (amount != null) sum += amount;
+  }
+  return roundMoney(sum);
+}
+
+export function computedReceiptTotal(fields: Array<SplitField & { status?: string }>) {
+  if (!fields.some((field) => isItemRowKey(field.key))) return null;
+  let sum = 0;
+  for (const field of fields) {
+    if (field.status === "ignored") continue;
+    if (!isReceiptTotalSourceKey(field.key)) continue;
+    const amount = lineAmount(field);
+    if (amount != null) sum += amount;
+  }
+  return roundMoney(sum);
+}
+
+export function remainderGap(fields: SplitField[]) {
+  const total = parseMoney(fieldValue(fields, "total"));
+  if (total == null) return null;
+  return roundMoney(total - lineItemsSum(fields));
+}
+
+export function assignedTotal(fields: SplitField[], claims: SplitClaim[]) {
+  return roundMoney(personShares(fields, claims).reduce((sum, person) => sum + person.total, 0));
+}
+
+export function splitBalance(fields: SplitField[], claims: SplitClaim[]) {
+  const receipt = receiptTotal(fields);
+  const assigned = assignedTotal(fields, claims);
+  const leftover = unclaimedLines(fields, claims);
+  const leftoverSum = roundMoney(
+    leftover.reduce((sum, field) => sum + (lineAmount(field) ?? 0), 0),
+  );
+  const towardReceipt = receipt == null ? leftoverSum : roundMoney(receipt - assigned);
+  const open = leftoverSum > 0 ? leftoverSum : Math.max(0, towardReceipt);
+  let status: "empty" | "open" | "settled" | "over" = "empty";
+  if (assigned === 0 && open === 0) status = "empty";
+  else if (receipt != null && assigned > receipt + 0.009) status = "over";
+  else if (open > 0.009) status = "open";
+  else status = "settled";
+  return { receipt, assigned, open, leftover, leftoverSum, status };
+}
+
 export function chatSplit(fields: SplitField[], claims: SplitClaim[]) {
   const people = personShares(fields, claims);
+  const { open, status } = splitBalance(fields, claims);
   const head = exportLine(fields, claims);
-  if (people.length === 0) return head;
-  return `${head}\n${people.map((p) => `${p.name} ${formatMoney(p.total)}`).join(" · ")}`;
+  const parts = [
+    ...people.map((p) => `${p.name} ${formatMoney(p.total)}`),
+    status === "open" ? `still open ${formatMoney(open)}` : "",
+  ].filter(Boolean);
+  if (parts.length === 0) return head;
+  return `${head}\n${parts.join(" · ")}`;
 }

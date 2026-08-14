@@ -10,7 +10,8 @@ import {
   type Database,
 } from "@proofsheet/db";
 import { createProvider, fieldLabels, templates as templateSpecs } from "@proofsheet/interfaze";
-import { interfazeImageSource } from "@/lib/extract-source";
+import { interfazeImageSource } from "./extract-source";
+import { syncRemainderField } from "./remainder";
 
 type JobRow = {
   id: string;
@@ -167,6 +168,8 @@ export async function processExtract(
       updatedAt: new Date(),
     })
     .where(eq(documents.id, doc.id));
+
+  await syncRemainderField(database, doc.id, doc.workspaceId);
 
   await database.update(jobs).set({ status: "done", updatedAt: new Date() }).where(eq(jobs.id, job.id));
 }

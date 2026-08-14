@@ -7,7 +7,8 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
-    "test": "tsx --test lib/*.test.ts"
+    "test": "tsx --test lib/*.test.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@proofsheet/db": "workspace:*",
@@ -23,6 +24,7 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/node": "^22.17.0",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",

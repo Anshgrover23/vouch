@@ -3,13 +3,19 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { after } from "next/server";
-import { documents, fields, jobs, splitClaims, templates } from "@proofsheet/db";
+import { documentPages, documents, fields, groups, jobs, splitClaims, templates } from "@proofsheet/db";
 import { SAMPLE_PAYMENT_PATH, SAMPLE_RECEIPT_PATH, templates as templateMeta } from "@proofsheet/interfaze";
+import { groupInWorkspace } from "@/lib/account";
 import { requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { tryProcessDocument } from "@/lib/extract";
 import { providerMode } from "@/lib/flags";
+import { TYPED_RECEIPT } from "@/lib/image-response";
+import { logActivity } from "@/lib/activity";
+import { manualFieldRows, sanitizeManualReceipt } from "@/lib/manual-receipt";
+import { parseGroupId } from "@/lib/paths";
 import { resizeReceipt, storageConfigured, uploadReceipt } from "@/lib/receipt-storage";
+import { syncRemainderField } from "@/lib/remainder";
 import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouchedCount } from "@/lib/split";
 
 export const maxDuration = 60;
@@ -103,7 +109,6 @@ async function saveUpload(file: File) {
       return { url, mime };
     } catch (error) {
       console.error("[upload] storage failed", error);
-      if (!process.env.VERCEL) throw error;
     }
   }
 
@@ -118,6 +123,98 @@ async function saveUpload(file: File) {
   return { url: `/uploads/${name}`, mime };
 }
 
+async function resolveGroupId(workspaceId: string, requested: unknown) {
+  const requestedId = parseGroupId(requested);
+  if (requestedId) {
+    const group = await groupInWorkspace(db(), requestedId, workspaceId);
+    if (!group) return { error: "Unknown group." as const };
+    return { id: group.id };
+  }
+  const [activeGroup] = await db()
+    .select({ id: groups.id })
+    .from(groups)
+    .where(eq(groups.workspaceId, workspaceId))
+    .orderBy(desc(groups.createdAt))
+    .limit(1);
+  return { id: activeGroup?.id };
+}
+
+async function createManualDocument(
+  session: { workspaceId: string; userId: string; displayName: string },
+  raw: unknown,
+) {
+  const parsed = sanitizeManualReceipt(raw);
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
+
+  const body = raw && typeof raw === "object" ? (raw as { groupId?: unknown }) : {};
+  const group = await resolveGroupId(session.workspaceId, body.groupId);
+  if ("error" in group) return Response.json({ error: group.error }, { status: 400 });
+
+  const [template] = await db()
+    .select()
+    .from(templates)
+    .where(and(eq(templates.workspaceId, session.workspaceId), eq(templates.slug, parsed.value.slug)))
+    .limit(1);
+  if (!template) return Response.json({ error: "unknown template" }, { status: 400 });
+
+  const [doc] = await db()
+    .insert(documents)
+    .values({
+      workspaceId: session.workspaceId,
+      templateId: template.id,
+      uploadedBy: session.userId,
+      title: parsed.value.title,
+      status: "needs_review",
+      storagePath: TYPED_RECEIPT,
+      sourceUrl: null,
+      mimeType: "text/plain",
+      providerMode: providerMode(),
+      groupId: group.id,
+      paidByName: session.displayName,
+    })
+    .returning();
+
+  await db().insert(documentPages).values({
+    documentId: doc.id,
+    workspaceId: session.workspaceId,
+    pageIndex: 0,
+    imageUrl: "",
+    width: 800,
+    height: 1100,
+  });
+
+  const rows = manualFieldRows(parsed.value);
+  if (rows.length) {
+    await db().insert(fields).values(
+      rows.map((row) => ({
+        documentId: doc.id,
+        workspaceId: session.workspaceId,
+        key: row.key,
+        label: row.label,
+        modelValue: row.modelValue,
+        confidence: "1",
+        bounds: null,
+        status: "reviewed",
+      })),
+    );
+  }
+
+  await syncRemainderField(db(), doc.id, session.workspaceId);
+
+  await logActivity(db(), {
+    workspaceId: session.workspaceId,
+    groupId: group.id,
+    documentId: doc.id,
+    actorName: session.displayName,
+    action: "receipt",
+    detail: { title: parsed.value.title },
+  });
+
+  return Response.json({
+    document: { id: doc.id, status: doc.status, title: doc.title },
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const session = await requireSession();
@@ -127,10 +224,12 @@ export async function POST(req: Request) {
     let sourceUrl = "";
     let title: string | undefined;
     let mimeType = "image/png";
+    let requestedGroup: unknown;
 
     if (ctype.includes("multipart/form-data")) {
       const form = await req.formData();
       slug = String(form.get("slug") ?? "grocery-receipt");
+      requestedGroup = form.get("groupId");
       const file = form.get("file");
       if (file instanceof File && file.size > 0) {
         const saved = await saveUpload(file);
@@ -139,18 +238,29 @@ export async function POST(req: Request) {
         title = file.name;
       }
     } else {
-      const body = (await req.json()) as { slug?: string; sourceUrl?: string; title?: string };
+      const body = (await req.json()) as {
+        slug?: string;
+        sourceUrl?: string;
+        title?: string;
+        manual?: boolean;
+        groupId?: string;
+      };
+      if (body.manual) return await createManualDocument(session, body);
       slug = body.slug ?? "grocery-receipt";
       sourceUrl = body.sourceUrl ?? "";
       title = body.title;
+      requestedGroup = body.groupId;
     }
 
     const meta = templateMeta[slug as keyof typeof templateMeta];
-    const [template] = await db()
+    const templatePromise = db()
       .select()
       .from(templates)
       .where(and(eq(templates.workspaceId, session.workspaceId), eq(templates.slug, slug)))
       .limit(1);
+    const groupPromise = resolveGroupId(session.workspaceId, requestedGroup);
+    const [[template], group] = await Promise.all([templatePromise, groupPromise]);
+    if ("error" in group) return Response.json({ error: group.error }, { status: 400 });
     if (!template || !meta) {
       return Response.json({ error: "unknown template" }, { status: 400 });
     }
@@ -169,6 +279,8 @@ export async function POST(req: Request) {
         sourceUrl,
         mimeType,
         providerMode: providerMode(),
+        groupId: group.id,
+        paidByName: session.displayName,
       })
       .returning();
 
@@ -185,6 +297,15 @@ export async function POST(req: Request) {
         console.error("[extract]", error);
       }),
     );
+
+    await logActivity(db(), {
+      workspaceId: session.workspaceId,
+      groupId: group.id,
+      documentId: doc.id,
+      actorName: session.displayName,
+      action: "receipt",
+      detail: { title: doc.title },
+    });
 
     return Response.json({
       document: { id: doc.id, status: doc.status, title: doc.title },

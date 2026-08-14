@@ -12,6 +12,47 @@
   min-width: 0;
 }
 
+.groupCue {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 0 0 24px;
+  padding: 12px 14px;
+  background: var(--color-paper-2);
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.groupCue a {
+  text-decoration: none;
+  padding: 8px 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper);
+  white-space: nowrap;
+}
+
+.groupCue a:hover {
+  background: var(--color-lime);
+}
+
+.groupCue a:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+.groupCue span {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--color-ink-2);
+}
+
 .lede {
   margin: 0 0 28px;
   max-width: 46ch;
@@ -20,10 +61,22 @@
   color: var(--color-ink-2);
 }
 
-.err {
+.err,
+.fieldErr {
   color: var(--color-pink);
   font-family: var(--font-mono);
   margin: 0 0 16px;
+}
+
+.fieldErr {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.req {
+  color: var(--color-pink);
+  margin-left: 4px;
+  font-weight: 800;
 }
 
 .drop {
@@ -111,6 +164,111 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 20px;
+}
+
+.alt {
+  margin: 20px 0 0;
+}
+
+.alt button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: 600 0.95rem var(--font-body);
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.alt button:hover {
+  color: var(--color-ink-2);
+}
+
+.alt button:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+.manual {
+  display: grid;
+  gap: 14px;
+  background: var(--color-paper-2);
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-card);
+  padding: 22px 20px;
+  min-width: 0;
+}
+
+.manual label {
+  display: grid;
+  gap: 6px;
+}
+
+.manual input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 2px solid var(--color-ink);
+  padding: 10px 12px;
+  font: 400 1rem var(--font-body);
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+.manual input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.manual input[aria-invalid="true"] {
+  border-color: var(--color-pink);
+}
+
+.lines {
+  display: grid;
+  gap: 10px;
+}
+
+.lines p {
+  margin: 0;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.lineField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.remove {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 8px 4px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  cursor: pointer;
+}
+
+.remove:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.remove:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
 }
 
 .card {
@@ -223,6 +381,14 @@
   }
 
   .actions :global(.btn) {
+    width: 100%;
+  }
+
+  .line {
+    grid-template-columns: 1fr;
+  }
+
+  .manual :global(.btn) {
     width: 100%;
   }
 }

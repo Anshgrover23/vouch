@@ -29,10 +29,6 @@ function peopleLabel(n: number) {
 }
 
 async function fetchSplits() {
-  const list = await fetch("/api/documents", { credentials: "include" });
-  if (list.status !== 401) return list;
-  const me = await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
-  if (!me.ok) return me;
   return fetch("/api/documents", { credentials: "include" });
 }
 
@@ -47,8 +43,7 @@ function SplitsHome() {
       const res = await fetchSplits();
       if (!alive()) return;
       if (res.status === 401) {
-        setError("Could not start a session.");
-        setDocs([]);
+        window.location.href = `/login?next=${encodeURIComponent("/inbox")}`;
         return;
       }
       if (!res.ok) {
@@ -94,21 +89,21 @@ function SplitsHome() {
       ) : null}
       {loading && !docs.length && !error ? <p className={styles.pending}>Loading splits…</p> : null}
       {docs.length === 0 && !error && !loading ? (
-        <div className={styles.empty}>
+        <div className={styles.empty} data-testid="inbox-empty">
           <h2>No receipts yet.</h2>
           <p>Snap a grocery run or a Venmo screenshot. Housemates tap the lines they owe.</p>
-          <Link className="btn btn-primary" href="/new">
+          <Link className="btn btn-primary" href="/new" data-testid="inbox-new">
             New receipt
           </Link>
         </div>
       ) : null}
       {docs.length > 0 ? (
-        <ul className={styles.list}>
+        <ul className={styles.list} data-testid="inbox-list">
           {docs.map((d) => {
             const reading = d.status === "uploaded" || d.status === "processing";
             return (
               <li key={d.id}>
-                <Link href={`/review/${d.id}`} className={styles.card}>
+                <Link href={`/review/${d.id}`} className={styles.card} data-testid="inbox-card">
                   <div className={styles.meta}>
                     <strong>{d.merchant || "Receipt"}</strong>
                     <span>

@@ -23,6 +23,92 @@
   font-size: 1.35rem;
 }
 
+.copy {
+  appearance: none;
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border-radius: 0;
+  padding: 8px 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: none;
+  touch-action: manipulation;
+}
+
+.copy:hover {
+  background: var(--color-paper-3);
+}
+
+.copy:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.copy:active {
+  transform: translateY(1px);
+}
+
+.copy:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.copyShort {
+  display: none;
+}
+
+.ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.ledger div {
+  margin: 0;
+  padding: 10px 12px;
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper);
+  min-width: 0;
+}
+
+.ledger dt {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ledger dd {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ledger .gap {
+  background: var(--color-paper-3);
+}
+
+.ledger .over {
+  background: color-mix(in oklch, var(--color-pink) 22%, var(--color-paper));
+}
+
+.live {
+  margin: 0 0 14px;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  max-width: 62ch;
+}
+
 .people {
   list-style: none;
   margin: 0;
@@ -132,8 +218,35 @@
     grid-template-columns: 1fr;
   }
 
-  .head :global(.btn) {
-    width: 100%;
-    white-space: nowrap;
+  .ledger {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .ledger div {
+    padding: 8px;
+  }
+
+  .ledger dd {
+    font-size: 0.95rem;
+  }
+
+  .head .copy {
+    width: auto;
+    min-height: 44px;
+  }
+
+  .copyFull {
+    display: none;
+  }
+
+  .copyShort {
+    display: inline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copy:active {
+    transform: none;
   }
 }

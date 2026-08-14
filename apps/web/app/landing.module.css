@@ -246,12 +246,56 @@
 .lime h3, .pink h3, .blue h3, .orange h3 { color: inherit; }
 .uses .mono { color: inherit; opacity: 0.8; }
 
+.product {
+  background: var(--color-paper);
+  border-top: 2px solid var(--color-ink);
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.productGrid article {
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-card);
+  padding: 22px 20px;
+  min-width: 0;
+}
+
+.productGrid h3 {
+  margin: 10px 0 8px;
+  font-size: 1.2rem;
+}
+
+.productGrid p:last-child {
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .hero,
   .stepsHead,
   .void,
-  .stepGrid {
+  .stepGrid,
+  .productGrid {
     grid-template-columns: 1fr;
+  }
+
+  .hero,
+  .steps,
+  .product,
+  .void {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .hero {
+    padding-top: 32px;
+    padding-bottom: 40px;
   }
 
   .copy h1 {

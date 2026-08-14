@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { auditEvents, documents, fields } from "@proofsheet/db";
 import { requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { visibleFields } from "@/lib/remainder";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +12,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     if (!doc || doc.workspaceId !== session.workspaceId) {
       return Response.json({ error: "not found" }, { status: 404 });
     }
-    const fieldRows = await db().select().from(fields).where(eq(fields.documentId, id));
+    const fieldRows = visibleFields(await db().select().from(fields).where(eq(fields.documentId, id)));
     const blocked = fieldRows.filter((f) => f.status === "needs_review" && !f.humanValue);
     if (blocked.length) {
       return Response.json(

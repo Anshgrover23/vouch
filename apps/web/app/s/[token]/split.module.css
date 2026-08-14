@@ -85,6 +85,12 @@
   color: var(--color-muted);
 }
 
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .gate label {
   display: grid;
   gap: 6px;
@@ -146,7 +152,8 @@
 }
 
 @media (max-width: 414px) {
-  .gate :global(.btn) {
+  .gate :global(.btn),
+  .cta :global(.btn) {
     width: 100%;
   }
 

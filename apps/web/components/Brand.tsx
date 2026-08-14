@@ -89,6 +89,20 @@ export function IconShare() {
   );
 }
 
+export function IconStar() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 3.4 14.47 9.1l6.13.54-4.7 4.12 1.4 6-5.3-3.18L5.7 19.76l1.4-6-4.7-4.12 6.13-.54L12 3.4z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="miter"
+      />
+    </svg>
+  );
+}
+
 export function IconGithub({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">

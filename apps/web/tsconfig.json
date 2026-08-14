@@ -11,5 +11,5 @@
     "incremental": true
   },
   "include": ["next-env.d.ts", "css.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "e2e", "playwright.config.ts"]
 }

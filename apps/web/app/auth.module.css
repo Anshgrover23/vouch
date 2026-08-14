@@ -1,0 +1,168 @@
+.page {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 48px var(--space-lg) 96px;
+}
+
+.page h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(2rem, 6vw, 3rem);
+  overflow-wrap: anywhere;
+}
+
+.lede {
+  margin: 0 0 24px;
+  color: var(--color-muted);
+  max-width: 36ch;
+}
+
+.sheet {
+  width: min(100%, 28rem);
+  margin: 28px auto 80px;
+  display: grid;
+  gap: 12px;
+  justify-items: stretch;
+}
+
+.sheet h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3rem);
+  overflow-wrap: anywhere;
+}
+
+.sheet .lede {
+  margin: 0;
+  max-width: none;
+}
+
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.form label {
+  display: grid;
+  gap: 6px;
+}
+
+.form input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 2px solid var(--color-ink);
+  padding: 10px 12px;
+  font: 400 1rem var(--font-body);
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.form input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.form input[aria-invalid="true"] {
+  border-color: var(--color-pink);
+}
+
+.err,
+.fieldErr {
+  margin: 0;
+  color: var(--color-pink);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.fieldErr {
+  font-size: 0.78rem;
+}
+
+.switch {
+  margin: 18px 0 0;
+  color: var(--color-muted);
+}
+
+.switch a {
+  color: var(--color-ink);
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+}
+
+.panel {
+  display: grid;
+  gap: 22px;
+  padding: 20px 18px;
+  background: var(--color-paper-2);
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-hard);
+}
+
+.rule {
+  border: 0;
+  margin: 0;
+  height: 2px;
+  background: var(--color-ink);
+}
+
+.card {
+  display: grid;
+  gap: 4px;
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-hard);
+  padding: 16px 18px;
+  background: var(--color-lime);
+}
+
+.card strong {
+  font-size: 1.35rem;
+  overflow-wrap: anywhere;
+}
+
+.card span {
+  color: var(--color-ink-2);
+  overflow-wrap: anywhere;
+}
+
+.ok {
+  margin: 0;
+  color: var(--color-ok);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+.foot :global(.btn) {
+  width: 100%;
+}
+
+.panel .form :global(.btn) {
+  width: 100%;
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.meta .mono {
+  display: block;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 414px) {
+  .form :global(.btn),
+  .foot :global(.btn) {
+    width: 100%;
+  }
+
+  .form input {
+    font-size: 16px;
+  }
+
+  .sheet {
+    margin: 16px auto 64px;
+  }
+}

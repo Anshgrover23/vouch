@@ -56,6 +56,18 @@
   display: none;
 }
 
+.waiting {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 2px solid var(--color-ink);
+  background: var(--color-lime);
+  color: var(--color-lime-ink);
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 @media (max-width: 768px) {
   .stage {
     height: auto;

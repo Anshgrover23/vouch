@@ -1,7 +1,6 @@
-.nav {
-  display: flex;
+.nav,
+.navGuest {
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 14px 24px;
   border-bottom: 2px solid var(--color-ink);
@@ -9,6 +8,46 @@
   top: 0;
   background: var(--color-paper);
   z-index: 10;
+}
+
+.nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "brand links cta";
+  align-items: center;
+  column-gap: 16px;
+}
+
+.nav .brand {
+  grid-area: brand;
+  justify-self: start;
+}
+
+.nav .links {
+  grid-area: links;
+  justify-self: center;
+}
+
+.nav .cta {
+  grid-area: cta;
+  justify-self: end;
+}
+
+.navGuest {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.navGuest .brand {
+  justify-self: start;
+}
+
+.navGuest .links {
+  justify-self: center;
+}
+
+.navGuest .actions {
+  justify-self: end;
 }
 
 .brand {
@@ -41,7 +80,69 @@
   min-width: 0;
 }
 
+.brandWord {
+  min-width: 0;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 8px 18px;
+  min-width: 0;
+}
+
+.links a {
+  text-decoration: none;
+  padding: 8px 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  white-space: nowrap;
+}
+
+.links a:hover {
+  color: var(--color-ink);
+}
+
+.links a:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+.menuBtn {
+  display: none;
+  appearance: none;
+  margin: 0;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 8px 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper-2);
+  white-space: nowrap;
+}
+
+.menuBtn:hover {
+  background: var(--color-lime);
+}
+
+.menuBtn:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
 .splits {
+  appearance: none;
+  background: none;
+  border: 0;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 0.78rem;
@@ -50,6 +151,18 @@
   text-decoration: none;
   color: var(--color-ink);
   padding: 8px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.splits:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.splits:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
 }
 
 .ft {
@@ -127,7 +240,68 @@
   height: 14px;
 }
 
+@media (max-width: 800px) {
+  .navGuest {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .navGuest .links {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
+  .nav {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "brand menu cta";
+    column-gap: 8px;
+  }
+
+  .nav:has(.linksOpen) {
+    grid-template-areas:
+      "brand menu cta"
+      "links links links";
+  }
+
+  .menuBtn {
+    display: inline-flex;
+    align-items: center;
+    grid-area: menu;
+  }
+
+  .links {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 8px 0 0;
+    border-top: 2px solid var(--color-ink);
+  }
+
+  .linksOpen {
+    display: flex;
+  }
+
+  .links a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 2px solid var(--color-ink);
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+  }
+
+  .links a:hover {
+    background: var(--color-lime);
+  }
+
+  .cta {
+    white-space: nowrap;
+  }
+
   .ft {
     flex-direction: column;
     align-items: center;
@@ -145,21 +319,35 @@
 }
 
 @media (max-width: 414px) {
-  .nav {
+  .nav,
+  .navGuest {
     padding: 10px 12px;
     gap: 8px;
   }
 
   .actions {
     gap: 8px;
+    flex-shrink: 0;
   }
 
-  .nav :global(.btn) {
+  .nav :global(.btn),
+  .navGuest :global(.btn) {
     padding: 10px 12px;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .ft {
     padding: 16px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 380px) {
+  .brandWord {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
   }
 }

@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import { loadRootEnv } from "./load-env";
+import { DEFAULT_TEMPLATES } from "./templates";
 
 loadRootEnv();
 
@@ -15,9 +16,10 @@ if (!url) {
 const sql = postgres(url, { max: 1, onnotice: () => {} });
 
 await sql.unsafe(`
-  insert into users (id, email, display_name)
-  values ('${DEMO_USER_ID}', 'demo@proofsheet.dev', 'Demo reviewer')
-  on conflict (email) do nothing;
+  insert into users (id, email, display_name, onboarded_at)
+  values ('${DEMO_USER_ID}', 'demo@proofsheet.dev', 'Demo reviewer', now())
+  on conflict (email) do update set
+    onboarded_at = coalesce(users.onboarded_at, excluded.onboarded_at);
 `);
 
 await sql.unsafe(`
@@ -32,52 +34,7 @@ await sql.unsafe(`
   on conflict (workspace_id, user_id) do nothing;
 `);
 
-const templates = [
-  {
-    slug: "grocery-receipt",
-    name: "Grocery receipt",
-    modality: "image",
-    schema: {
-      type: "object",
-      properties: {
-        merchant: { type: "string" },
-        date: { type: "string" },
-        total: { type: "string" },
-        items: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string" },
-              price: { type: "string" },
-            },
-            required: ["name", "price"],
-          },
-        },
-      },
-      required: ["merchant", "date", "total", "items"],
-    },
-  },
-  {
-    slug: "payment-screenshot",
-    name: "Payment screenshot",
-    modality: "image",
-    schema: {
-      type: "object",
-      properties: {
-        sender: { type: "string" },
-        recipient: { type: "string" },
-        amount: { type: "string" },
-        date: { type: "string" },
-        status: { type: "string" },
-        note: { type: "string" },
-      },
-      required: ["sender", "recipient", "amount", "date", "status"],
-    },
-  },
-];
-
-for (const t of templates) {
+for (const t of DEFAULT_TEMPLATES) {
   await sql`
     insert into templates (workspace_id, slug, name, modality, json_schema)
     values (${DEMO_WORKSPACE_ID}, ${t.slug}, ${t.name}, ${t.modality}, ${sql.json(t.schema)})

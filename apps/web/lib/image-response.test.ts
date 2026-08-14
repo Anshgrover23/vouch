@@ -22,6 +22,10 @@ describe("displayImageUrl", () => {
     assert.equal(displayImageUrl(null, proxy), proxy);
     assert.equal(displayImageUrl("", proxy), proxy);
   });
+
+  it("returns no URL for a typed receipt so the photo pane stays empty paper", () => {
+    assert.equal(displayImageUrl("typed", proxy), "");
+  });
 });
 
 describe("imageResponse", () => {

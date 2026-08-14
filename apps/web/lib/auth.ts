@@ -1,37 +1,28 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { DEMO_USER_ID, DEMO_WORKSPACE_ID } from "@proofsheet/db";
+import {
+  COOKIE,
+  decodeSession,
+  encodeSession,
+  type Session,
+} from "@/lib/session-cookie";
 
-const COOKIE = "proofsheet_session";
+export type { Session };
+export { COOKIE, decodeSession, encodeSession };
 
-function secret() {
-  return process.env.SESSION_SECRET || "dev-only-change-me";
-}
+const cookieBase = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+};
 
-export type Session = { userId: string; workspaceId: string; email: string };
-
-function sign(payload: string) {
-  return createHmac("sha256", secret()).update(payload).digest("hex");
-}
-
-export function encodeSession(session: Session) {
-  const payload = Buffer.from(JSON.stringify(session)).toString("base64url");
-  return `${payload}.${sign(payload)}`;
-}
-
-export function decodeSession(token: string | undefined): Session | null {
-  if (!token) return null;
-  const [payload, sig] = token.split(".");
-  if (!payload || !sig) return null;
-  const expected = sign(payload);
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-  try {
-    return JSON.parse(Buffer.from(payload, "base64url").toString()) as Session;
-  } catch {
-    return null;
-  }
+export function sessionCookieOptions() {
+  return {
+    ...cookieBase,
+    maxAge: 60 * 60 * 24 * 14,
+    secure: process.env.NODE_ENV === "production",
+  };
 }
 
 export async function getSession(): Promise<Session | null> {
@@ -52,7 +43,27 @@ export function demoSession(): Session {
     userId: DEMO_USER_ID,
     workspaceId: DEMO_WORKSPACE_ID,
     email: "demo@proofsheet.dev",
+    displayName: "Demo reviewer",
+    onboarded: true,
   };
 }
 
-export { COOKIE };
+export async function attachSession(res: NextResponse, session: Session) {
+  res.cookies.set(COOKIE, await encodeSession(session), sessionCookieOptions());
+  return res;
+}
+
+export function clearSessionCookie(res: NextResponse) {
+  res.cookies.set(COOKIE, "", { ...cookieBase, maxAge: 0 });
+  return res;
+}
+
+export function publicSession(session: Session) {
+  return {
+    userId: session.userId,
+    workspaceId: session.workspaceId,
+    email: session.email,
+    displayName: session.displayName,
+    onboarded: session.onboarded,
+  };
+}

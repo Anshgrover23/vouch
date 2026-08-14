@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import sharp from "sharp";
-import { resizeReceipt, storageConfigured } from "./receipt-storage";
+import { isStorageNetworkError, resizeReceipt, storageConfigured } from "./receipt-storage";
 
 describe("storageConfigured", () => {
   const prevUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -26,6 +26,28 @@ describe("storageConfigured", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "sb_secret_test";
     assert.equal(storageConfigured(), true);
+  });
+});
+
+describe("isStorageNetworkError", () => {
+  it("treats fetch failed, TypeError, and ENOTFOUND as unavailable", () => {
+    assert.equal(isStorageNetworkError(new Error("fetch failed")), true);
+    assert.equal(isStorageNetworkError(new TypeError("fetch failed")), true);
+    assert.equal(isStorageNetworkError({ message: "fetch failed" }), true);
+    const dns = new Error("getaddrinfo ENOTFOUND example.supabase.co");
+    (dns as Error & { code: string }).code = "ENOTFOUND";
+    assert.equal(isStorageNetworkError(dns), true);
+    assert.equal(
+      isStorageNetworkError(new Error("storage unavailable", { cause: new TypeError("fetch failed") })),
+      true,
+    );
+  });
+
+  it("does not treat auth or missing-bucket errors as network failures", () => {
+    assert.equal(isStorageNetworkError(new Error("Invalid API key")), false);
+    assert.equal(isStorageNetworkError({ message: "new row violates row-level security policy" }), false);
+    assert.equal(isStorageNetworkError(new Error("Bucket not found")), false);
+    assert.equal(isStorageNetworkError(new Error("The resource was not found")), false);
   });
 });
 

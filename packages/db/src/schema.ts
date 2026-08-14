@@ -4,6 +4,7 @@ import {
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -20,6 +21,8 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull(),
   displayName: text("display_name").notNull(),
+  passwordHash: text("password_hash"),
+  onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
   ...timestamps,
 }, (t) => [uniqueIndex("users_email_idx").on(t.email)]);
 
@@ -45,6 +48,32 @@ export const memberships = pgTable("memberships", {
 }, (t) => [
   uniqueIndex("memberships_workspace_user_idx").on(t.workspaceId, t.userId),
   index("memberships_user_idx").on(t.userId),
+]);
+
+export const groups = pgTable("groups", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  information: text("information"),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  ...timestamps,
+}, (t) => [
+  index("groups_workspace_idx").on(t.workspaceId),
+  index("groups_created_by_idx").on(t.createdBy),
+]);
+
+export const groupMembers = pgTable("group_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  groupId: uuid("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+  displayName: text("display_name").notNull(),
+  inviteToken: text("invite_token").notNull().default(sql`gen_random_uuid()::text`),
+  status: text("status").notNull().default("invited"),
+  ...timestamps,
+}, (t) => [
+  uniqueIndex("group_members_invite_token_idx").on(t.inviteToken),
+  index("group_members_group_idx").on(t.groupId),
+  index("group_members_user_idx").on(t.userId),
 ]);
 
 export const templates = pgTable("templates", {
@@ -76,10 +105,53 @@ export const documents = pgTable("documents", {
   error: text("error"),
   providerMode: text("provider_mode").notNull().default("fixture"),
   shareToken: text("share_token").notNull().default(sql`gen_random_uuid()::text`),
+  groupId: uuid("group_id").references(() => groups.id, { onDelete: "set null" }),
+  paidByName: text("paid_by_name").notNull().default(""),
   ...timestamps,
 }, (t) => [
   index("documents_workspace_status_idx").on(t.workspaceId, t.status),
   uniqueIndex("documents_share_token_idx").on(t.shareToken),
+  index("documents_group_idx").on(t.groupId),
+]);
+
+export const groupStars = pgTable("group_stars", {
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  groupId: uuid("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  primaryKey({ columns: [t.userId, t.groupId] }),
+  index("group_stars_group_idx").on(t.groupId),
+]);
+
+export const settlements = pgTable("settlements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  groupId: uuid("group_id").notNull().references(() => groups.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  fromName: text("from_name").notNull(),
+  toName: text("to_name").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  note: text("note"),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("settlements_group_idx").on(t.groupId),
+  index("settlements_workspace_idx").on(t.workspaceId),
+  index("settlements_created_by_idx").on(t.createdBy),
+]);
+
+export const activityEvents = pgTable("activity_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  groupId: uuid("group_id").references(() => groups.id, { onDelete: "cascade" }),
+  documentId: uuid("document_id").references(() => documents.id, { onDelete: "set null" }),
+  actorName: text("actor_name").notNull(),
+  action: text("action").notNull(),
+  detail: jsonb("detail").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("activity_events_group_created_idx").on(t.groupId, t.createdAt),
+  index("activity_events_workspace_idx").on(t.workspaceId),
+  index("activity_events_document_idx").on(t.documentId),
 ]);
 
 export const documentPages = pgTable("document_pages", {

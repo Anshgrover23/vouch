@@ -11,7 +11,7 @@ export const groceryReceiptSchema = z.object({
         price: z.string().describe("Line item price"),
       }),
     )
-    .describe("Purchased line items only — skip tax, subtotal, and payment rows"),
+    .describe("Purchased line items only — skip tax, subtotal, payment rows, phone numbers, order numbers, cashier lines, and item/rate/qty table headers. Use the line price or subtotal, not quantity."),
 });
 
 export const paymentScreenshotSchema = z.object({
@@ -31,7 +31,7 @@ export const templates = {
     schema: groceryReceiptSchema,
     samplePath: "/samples/receipt.png",
     prompt:
-      "Extract the merchant, date, grand total, and each purchased line item with its price from this grocery receipt. Skip tax and subtotal rows. If this is not a receipt or a field is unreadable, omit that field. Never output the word null.",
+      "Extract the merchant, date, grand total, and each purchased line item with its price from this grocery receipt. Skip tax, subtotal, payment rows, phone numbers, order numbers, cashier lines, and table headers. If a row has item number, rate, quantity, and subtotal, use the item name and the line price/subtotal only. If this is not a receipt or a field is unreadable, omit that field. Never output the word null.",
   },
   "payment-screenshot": {
     slug: "payment-screenshot",
@@ -55,10 +55,11 @@ export const fieldLabels: Record<string, string> = {
   amount: "Amount",
   status: "Status",
   note: "Note",
+  remainder: "Rest of the bill",
 };
 
 export function isClaimableKey(key: string) {
-  return key === "amount" || /^item_\d+$/.test(key);
+  return key === "amount" || key === "remainder" || /^item_\d+$/.test(key);
 }
 
 export function itemLabel(index: number, name: string) {

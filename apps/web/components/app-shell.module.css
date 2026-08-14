@@ -6,9 +6,11 @@
 }
 
 .top {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "brand nav cta";
   align-items: center;
-  gap: 20px;
+  column-gap: 16px;
   padding: 12px 20px;
   border-bottom: 2px solid var(--color-ink);
   background: var(--color-paper);
@@ -21,6 +23,8 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  grid-area: brand;
+  justify-self: start;
   text-decoration: none;
   color: var(--color-ink);
   font-family: var(--font-display);
@@ -43,8 +47,41 @@
 .nav {
   display: flex;
   gap: 8px;
-  flex: 1;
+  grid-area: nav;
+  justify-self: center;
   min-width: 0;
+}
+
+.cta {
+  grid-area: cta;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.menuBtn {
+  display: none;
+  appearance: none;
+  margin: 0;
+  cursor: pointer;
+  padding: 8px 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper-2);
+  white-space: nowrap;
+}
+
+.menuBtn:hover {
+  background: var(--color-lime);
+}
+
+.menuBtn:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 4px;
 }
 
 .nav a {
@@ -109,18 +146,53 @@
 
 @media (max-width: 700px) {
   .top {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "brand menu cta";
     padding: 10px 12px;
-    gap: 8px;
+    column-gap: 8px;
   }
 
-  .top :global(.btn) {
-    margin-left: auto;
-    white-space: nowrap;
-    padding: 10px 12px;
+  .top:has(.navOpen) {
+    grid-template-areas:
+      "brand menu cta"
+      "nav nav nav";
+  }
+
+  .menuBtn {
+    display: inline-flex;
+    align-items: center;
+    grid-area: menu;
   }
 
   .nav {
     display: none;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 0 0;
+    border-top: 2px solid var(--color-ink);
+  }
+
+  .navOpen {
+    display: flex;
+  }
+
+  .nav a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 2px solid var(--color-ink);
+    background: var(--color-paper-2);
+    color: var(--color-ink);
+  }
+
+  .cta {
+    white-space: nowrap;
+  }
+
+  .top :global(.btn) {
+    padding: 10px 12px;
   }
 
   .titleRow {
@@ -144,5 +216,15 @@
 
   .body {
     padding: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .brandWord {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
   }
 }

@@ -1,1 +1,11 @@
+html {
+  scroll-padding-top: 72px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 html, body { min-height: 100%; }

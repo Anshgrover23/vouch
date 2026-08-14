@@ -7,6 +7,7 @@ import type {
   PerceptionResult,
 } from "./types";
 import { findLine, flattenExtracted } from "./fields";
+import { fieldsFromOcr, parseReceiptObject, receiptParseTrusted, type OcrBlob } from "./receipt-ocr";
 
 function usage(res: { usage?: { prompt_tokens?: number; completion_tokens?: number } }) {
   return {
@@ -54,15 +55,17 @@ export class LiveInterfazeProvider implements InterfazeProvider {
       ],
     });
     const parsed = JSON.parse(response.choices[0]?.message.content ?? "{}") as {
-      result?: { extracted_text?: string; width?: number; height?: number };
-    };
-    const result = parsed.result ?? {};
+      result?: OcrBlob;
+    } & OcrBlob;
+    const result = (parsed.result ?? parsed) as OcrBlob;
+    const fromResponse = (response.precontext ?? []) as PerceptionResult["precontext"];
+    const ocrBlob = fromResponse.find((entry) => entry.name === "ocr") ?? { name: "ocr", result };
     return {
       text: result.extracted_text ?? JSON.stringify(parsed),
       width: result.width,
       height: result.height,
       imageUrl: sourceUrl,
-      precontext: (response.precontext ?? []) as PerceptionResult["precontext"],
+      precontext: fromResponse.some((entry) => entry.name === "ocr") ? fromResponse : [ocrBlob, ...fromResponse],
       ...usage(response),
     };
   }
@@ -95,11 +98,29 @@ export class LiveInterfazeProvider implements InterfazeProvider {
     schemaName: string;
     modality: "image" | "pdf" | "audio" | "url";
   }): Promise<ExtractResult> {
+    if (input.schemaName === "grocery-receipt" && input.modality === "image") {
+      const ocrStarted = Date.now();
+      const perception = await this.ocr(input.sourceUrl);
+      const ocr = perception.precontext.find((entry) => entry.name === "ocr")?.result as OcrBlob | undefined;
+      const parsed = parseReceiptObject(perception.text, ocr);
+      const fields = receiptParseTrusted(parsed) ? fieldsFromOcr(perception.text, ocr) : [];
+      console.log(`[extract] ocr-first ${Date.now() - ocrStarted}ms fields=${fields.length} trusted=${receiptParseTrusted(parsed)}`);
+      if (fields.length > 0) {
+        return {
+          fields,
+          precontext: perception.precontext,
+          tokenIn: perception.tokenIn,
+          tokenOut: perception.tokenOut,
+        };
+      }
+    }
+
     const media =
       input.modality === "audio"
         ? { type: "file" as const, file: { filename: "audio.mp4", file_data: input.sourceUrl } }
         : { type: "image_url" as const, image_url: { url: input.sourceUrl } };
 
+    const structuredStarted = Date.now();
     const response = await this.client.chat.completions.create({
       messages: [
         {
@@ -136,6 +157,7 @@ export class LiveInterfazeProvider implements InterfazeProvider {
       };
     });
 
+    console.log(`[extract] structured ${Date.now() - structuredStarted}ms fields=${fields.length}`);
     return { fields, precontext, ...usage(response) };
   }
 }

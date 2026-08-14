@@ -1,3 +1,5 @@
+export const TYPED_RECEIPT = "typed";
+
 function fromDataUrl(url: string) {
   const match = url.match(/^data:([^;]+);base64,(.+)$/);
   if (!match) return null;
@@ -5,7 +7,7 @@ function fromDataUrl(url: string) {
 }
 
 export function imageResponse(stored: string | null) {
-  if (!stored) return Response.json({ error: "not found" }, { status: 404 });
+  if (!stored || stored === TYPED_RECEIPT) return Response.json({ error: "not found" }, { status: 404 });
   const data = fromDataUrl(stored);
   if (data) {
     return new Response(data.body, {
@@ -23,6 +25,7 @@ export function imageResponse(stored: string | null) {
 
 export function displayImageUrl(stored: string | null | undefined, proxyPath: string) {
   if (!stored) return proxyPath;
+  if (stored === TYPED_RECEIPT) return "";
   if (stored.startsWith("data:")) return proxyPath;
   if (stored.startsWith("https://") || stored.startsWith("http://")) return stored;
   if (stored.startsWith("/uploads/") || stored.startsWith("/samples/")) return stored;

@@ -1,6 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { documents, fields } from "@proofsheet/db";
 import { db } from "@/lib/db";
+import { syncComputedTotal, syncRemainderField } from "@/lib/remainder";
+import { isReceiptTotalSourceKey } from "@/lib/split";
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -28,6 +30,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       updatedAt: new Date(),
     })
     .where(eq(fields.id, field.id));
+
+  if (isReceiptTotalSourceKey(field.key)) {
+    await syncComputedTotal(db(), doc.id);
+  }
+  if (field.key !== "remainder") {
+    await syncRemainderField(db(), doc.id, doc.workspaceId);
+  }
 
   return Response.json({ ok: true });
 }
