@@ -17,15 +17,6 @@ export function SiteNav() {
         Vouch
       </Link>
       <div className={styles.actions}>
-        <a
-          className={styles.github}
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Vouch on GitHub"
-        >
-          <IconGithub size={18} />
-        </a>
         <Link href="/inbox" className={styles.splits}>
           Splits
         </Link>
@@ -40,43 +31,40 @@ export function SiteNav() {
 export function SiteFooter() {
   return (
     <footer className={styles.ft}>
-      <div className={styles.ftMeta}>
-        <span>Vouch © 2026</span>
-        <span>
-          Created by{" "}
-          <a href={CREATOR_URL} target="_blank" rel="noopener noreferrer">
-            Ansh Grover
-          </a>
+      <p className={styles.ftMeta}>Vouch © 2026</p>
+      <p className={styles.ftBy}>
+        Created by{" "}
+        <a href={CREATOR_URL} target="_blank" rel="noopener noreferrer">
+          Ansh Grover
+        </a>
+        <span className={styles.sep} aria-hidden="true">
+          ·
         </span>
-      </div>
-      <div className={styles.ftCredits}>
-        <a
-          className={styles.ftLink}
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <IconGithub />
+        <a className={styles.git} href={REPO_URL} target="_blank" rel="noopener noreferrer">
+          <IconGithub size={14} />
           GitHub
         </a>
-        <span className={styles.powered}>
-          <a href={INTERFAZE_URL} target="_blank" rel="noopener noreferrer">
-            Powered by
-            <img
-              className={styles.interfaze}
-              src="/partners/interfaze.svg"
-              alt=""
-              width={72}
-              height={37}
-            />
-            Interfaze
-          </a>
-          <a href={YC_URL} target="_blank" rel="noopener noreferrer">
-            <img className={styles.yc} src="/partners/yc.svg" alt="" width={18} height={18} />
-            YC P26
-          </a>
+      </p>
+      <p className={styles.ftPowered}>
+        <span className={styles.muted}>Powered by</span>
+        <a className={styles.mark} href={INTERFAZE_URL} target="_blank" rel="noopener noreferrer">
+          <img
+            className={styles.interfaze}
+            src="/partners/interfaze.svg"
+            alt=""
+            width={48}
+            height={25}
+          />
+          Interfaze
+        </a>
+        <span className={styles.sep} aria-hidden="true">
+          ·
         </span>
-      </div>
+        <a className={styles.mark} href={YC_URL} target="_blank" rel="noopener noreferrer">
+          <img className={styles.yc} src="/partners/yc.svg" alt="" width={14} height={14} />
+          YC P26
+        </a>
+      </p>
     </footer>
   );
 }

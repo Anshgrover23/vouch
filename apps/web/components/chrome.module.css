@@ -41,24 +41,6 @@
   min-width: 0;
 }
 
-.github {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-ink);
-  padding: 6px;
-  line-height: 0;
-}
-
-.github:hover {
-  color: var(--color-muted);
-}
-
-.github:focus-visible {
-  outline: 2px solid var(--color-ink);
-  outline-offset: 3px;
-}
-
 .splits {
   font-family: var(--font-display);
   font-weight: 800;
@@ -73,26 +55,49 @@
 .ft {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
   align-items: center;
-  padding: 20px 24px;
+  gap: 12px 28px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
   border-top: 2px solid var(--color-ink);
   color: var(--color-muted);
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   background: var(--color-paper);
 }
 
 .ftMeta,
-.ftCredits {
+.ftBy,
+.ftPowered,
+.git,
+.mark {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 16px;
+  margin: 0;
   min-width: 0;
+}
+
+.ftBy,
+.ftPowered {
+  gap: 8px 12px;
+}
+
+.sep {
+  color: var(--color-muted);
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.git,
+.mark {
+  flex-wrap: nowrap;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .ft a {
@@ -110,30 +115,33 @@
   outline-offset: 3px;
 }
 
-.ftLink,
-.powered,
-.powered a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
-}
-
-.powered {
-  gap: 12px;
-}
-
 .interfaze {
   display: block;
-  height: 18px;
+  height: 14px;
   width: auto;
 }
 
 .yc {
   display: block;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--color-ink);
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 720px) {
+  .ft {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    padding: 18px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ftMeta,
+  .ftBy,
+  .ftPowered {
+    justify-content: center;
+  }
 }
 
 @media (max-width: 414px) {
@@ -152,6 +160,6 @@
   }
 
   .ft {
-    padding: 16px 12px;
+    padding: 16px 16px calc(14px + env(safe-area-inset-bottom, 0px));
   }
 }
