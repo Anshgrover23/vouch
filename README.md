@@ -1,6 +1,6 @@
 # Vouch
 
-Roommate and trip splits that cite the paper. Upload a grocery receipt or a Venmo/Zelle screenshot. Interfaze reads merchant, date, total, and line items. Housemates tap **I owe this** or **Not mine**. When people have vouched, you copy a line for the group chat:
+Roommate and trip splits that cite the paper. Sign up, snap a receipt or type the lines, housemates tap **I owe this** or **Not mine**. Groups keep who owes whom. When people have vouched, you copy a line for the group chat:
 
 `HILLCREST MARKET 13 Aug — $84.20 — 3 people vouched`
 
@@ -17,7 +17,8 @@ pnpm local
 ```
 
 - App: [http://localhost:3000](http://localhost:3000)
-- New receipt: [http://localhost:3000/new](http://localhost:3000/new)
+- Sign up: [http://localhost:3000/signup](http://localhost:3000/signup)
+- New receipt: [http://localhost:3000/new](http://localhost:3000/new) (signed in)
 
 `.env.local` is gitignored. Never commit it.
 
@@ -26,7 +27,7 @@ pnpm local
 | Variable | Required | What it does |
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Postgres. Local Docker, or pooled Supabase/Neon in production |
-| `SESSION_SECRET` | yes | Signs the demo session cookie |
+| `SESSION_SECRET` | yes | Signs the session cookie. Must match across Node and Edge middleware |
 | `INTERFAZE_API_KEY` | for live OCR | Empty → fixture receipts |
 | `NEXT_PUBLIC_APP_URL` | yes in prod | `https://vouch.anshgrover.com` |
 | `NEXT_PUBLIC_SUPABASE_URL` | for Storage | Project URL, e.g. `https://xxxx.supabase.co` |
@@ -120,20 +121,45 @@ The browser never talks to Interfaze. Next.js resizes the JPEG (max edge 1800px)
 
 Document and split JSON return an image URL, never the bytes.
 
-## Demo path
+Owners can skip junk OCR lines, rename items, and the receipt total recomputes. No photo? Type merchant, date, total, and lines on `/new`.
 
-1. `/new` → grocery sample or drop a JPG/PNG/WEBP (max 8MB)
-2. Wait for the scan (Interfaze, usually tens of seconds)
-3. **That's me** with a display name, tap lines you owe
-4. Copy share link → `/s/...`
-5. Copy split for the chat
+## Using the app
+
+1. `/signup` — name, email, password (8+). First run goes to `/onboarding` (start a group or skip).
+2. `/new` — snap a receipt, use a sample, or type the lines. Optional group on the receipt.
+3. `/review/[id]` — confirm who you are, tap lines you owe, invite housemates. Share link is `/s/...`.
+4. `/groups` — households and trips. Star from the list. Balances, totals, activity, CSV.
+5. `/inbox` — your splits. `/account` — name and password.
+
+`/new`, `/inbox`, `/groups`, `/account`, and `/review/...` require a signed-in, onboarded session. Share links (`/s/...`) do not.
+
+Seeded `demo@proofsheet.dev` has no password hash and cannot log in. Create a real account.
+
+## Tests and CI
+
+```bash
+pnpm test           # unit: web lib + Interfaze
+pnpm test:e2e       # Playwright against localhost:3000 (needs Postgres)
+```
+
+GitHub Actions on push and PR:
+
+| Check | What it runs |
+| --- | --- |
+| **Build** | `pnpm --filter @proofsheet/web build` |
+| **Test / unit** | `pnpm test` |
+| **Test / e2e** | Docker-matching Postgres 16, `pnpm db:migrate`, Playwright Chromium with `PROOFSHEET_FIXTURE=1` |
+
+E2E CI does **not** use production `DATABASE_URL` or secrets. It boots its own database and a dummy `SESSION_SECRET`. No GitHub Secrets to add for these jobs.
+
+Local e2e: `pnpm local` (or Postgres on `:5432`), then `pnpm test:e2e`. Playwright starts `pnpm dev` unless something is already on port 3000.
 
 ## Repo layout
 
 ```
-apps/web       Next.js 15 (landing, /new, inbox, review, share)
+apps/web       Next.js 15 (landing, auth, /new, inbox, review, groups, share)
 apps/worker    Local job loop (optional in production)
-packages/db    Drizzle schema + SQL migrations
+packages/db    Drizzle schema + SQL migrations (including auth + groups)
 packages/interfaze  Live + fixture providers
 packages/ui    Design tokens
 ```
@@ -144,7 +170,8 @@ Internal packages are still `@proofsheet/*`. The product name is Vouch.
 
 ```bash
 pnpm local          # docker + migrate + seed + web + worker
-pnpm test           # ingest + extract field unit tests
+pnpm test           # unit tests
+pnpm test:e2e       # Playwright
 pnpm build          # production build (web)
 pnpm db:migrate
 pnpm db:seed
