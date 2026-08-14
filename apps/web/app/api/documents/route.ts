@@ -15,18 +15,35 @@ import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouch
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
+const LIST_FIELD_KEYS = ["merchant", "recipient", "date", "total", "amount"];
+
 export async function GET() {
   try {
     const session = await requireSession();
     const rows = await db()
-      .select()
+      .select({
+        id: documents.id,
+        status: documents.status,
+        createdAt: documents.createdAt,
+        error: documents.error,
+        title: documents.title,
+      })
       .from(documents)
       .where(eq(documents.workspaceId, session.workspaceId))
       .orderBy(desc(documents.createdAt));
     const ids = rows.map((row) => row.id);
     const [fieldRows, claimRows] = ids.length
       ? await Promise.all([
-          db().select().from(fields).where(inArray(fields.documentId, ids)),
+          db()
+            .select({
+              documentId: fields.documentId,
+              key: fields.key,
+              label: fields.label,
+              modelValue: fields.modelValue,
+              humanValue: fields.humanValue,
+            })
+            .from(fields)
+            .where(and(inArray(fields.documentId, ids), inArray(fields.key, LIST_FIELD_KEYS))),
           db()
             .select({ documentId: splitClaims.documentId, displayName: splitClaims.displayName })
             .from(splitClaims)
@@ -64,8 +81,13 @@ export async function GET() {
       }),
       mode: providerMode(),
     });
-  } catch {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "failed";
+    if (message === "unauthorized") {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    console.error("[documents GET]", error);
+    return Response.json({ error: "failed" }, { status: 500 });
   }
 }
 

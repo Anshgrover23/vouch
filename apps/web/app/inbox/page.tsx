@@ -28,34 +28,72 @@ function peopleLabel(n: number) {
   return `${n} people vouched`;
 }
 
+async function fetchSplits() {
+  const list = await fetch("/api/documents", { credentials: "include" });
+  if (list.status !== 401) return list;
+  const me = await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
+  if (!me.ok) return me;
+  return fetch("/api/documents", { credentials: "include" });
+}
+
 function SplitsHome() {
   const [docs, setDocs] = useState<SplitRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  async function load() {
-    const me = await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
-    if (!me.ok) {
-      setError("Could not start a session.");
-      return;
-    }
-    const res = await fetch("/api/documents", { credentials: "include" });
-    if (!res.ok) {
+  async function load(alive: () => boolean) {
+    setLoading(true);
+    try {
+      const res = await fetchSplits();
+      if (!alive()) return;
+      if (res.status === 401) {
+        setError("Could not start a session.");
+        setDocs([]);
+        return;
+      }
+      if (!res.ok) {
+        setError("Splits could not load. Try again.");
+        return;
+      }
+      const json = await res.json();
+      if (!alive()) return;
+      setDocs(json.documents ?? []);
+      setError(null);
+    } catch {
+      if (!alive()) return;
       setError("Splits could not load. Try again.");
-      return;
+    } finally {
+      if (alive()) setLoading(false);
     }
-    const json = await res.json();
-    setDocs(json.documents ?? []);
-    setError(null);
   }
 
   useEffect(() => {
-    load();
+    let alive = true;
+    void load(() => alive);
+    return () => {
+      alive = false;
+    };
   }, []);
 
   return (
     <AppShell title="Your splits">
-      {error ? <p className={styles.err}>{error}</p> : null}
-      {docs.length === 0 && !error ? (
+      {error ? (
+        <p className={styles.err}>
+          {error}{" "}
+          <button
+            type="button"
+            className={styles.retry}
+            onClick={() => {
+              setError(null);
+              void load(() => true);
+            }}
+          >
+            Try again
+          </button>
+        </p>
+      ) : null}
+      {loading && !docs.length && !error ? <p className={styles.pending}>Loading splits…</p> : null}
+      {docs.length === 0 && !error && !loading ? (
         <div className={styles.empty}>
           <h2>No receipts yet.</h2>
           <p>Snap a grocery run or a Venmo screenshot. Housemates tap the lines they owe.</p>

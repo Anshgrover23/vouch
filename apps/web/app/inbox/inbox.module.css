@@ -75,6 +75,33 @@
   margin: 0 0 16px;
 }
 
+.pending {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.retry {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-left: 8px;
+  color: var(--color-ink);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
 @media (max-width: 414px) {
   .card {
     align-items: flex-start;

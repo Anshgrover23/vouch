@@ -1,21 +1,22 @@
-import { cookies } from "next/headers";
-import { COOKIE, demoSession, encodeSession } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { COOKIE, demoSession, encodeSession, getSession } from "@/lib/auth";
+
+const cookieOpts = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 14,
+};
 
 export async function POST() {
   const session = demoSession();
-  const jar = await cookies();
-  jar.set(COOKIE, encodeSession(session), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 14,
-  });
-  return Response.json({ ok: true, session: { email: session.email } });
+  const res = NextResponse.json({ ok: true, session: { email: session.email } });
+  res.cookies.set(COOKIE, encodeSession(session), cookieOpts);
+  return res;
 }
 
 export async function GET() {
-  const { getSession } = await import("@/lib/auth");
   const session = await getSession();
-  if (!session) return Response.json({ session: null }, { status: 401 });
-  return Response.json({ session });
+  if (!session) return NextResponse.json({ session: null }, { status: 401 });
+  return NextResponse.json({ session });
 }
