@@ -11,7 +11,8 @@
     "db:seed": "pnpm --filter @proofsheet/db seed",
     "db:push": "pnpm --filter @proofsheet/db push",
     "local": "docker compose up -d --wait && pnpm db:migrate && pnpm db:seed && turbo dev",
-    "test": "pnpm --filter @proofsheet/web test && pnpm --filter @proofsheet/interfaze test"
+    "test": "pnpm --filter @proofsheet/web test && pnpm --filter @proofsheet/interfaze test",
+    "test:e2e": "pnpm --filter @proofsheet/web test:e2e"
   },
   "devDependencies": {
     "turbo": "^2.5.5",

@@ -31,8 +31,8 @@ export function fieldValue(fields: SplitField[], key: string) {
   return sanitizeFieldValue(row?.humanValue ?? row?.modelValue);
 }
 
-export function parseMoney(value: string) {
-  const cleaned = value.replace(/[^0-9.]/g, "");
+export function parseMoney(value: string | null | undefined) {
+  const cleaned = (value ?? "").replace(/[^0-9.]/g, "");
   if (!cleaned || !/\d/.test(cleaned)) return null;
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
