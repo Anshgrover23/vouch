@@ -265,7 +265,7 @@
     grid-area: menu;
   }
 
-  .links {
+  .nav .links {
     display: none;
     grid-area: auto;
     grid-column: 1 / -1;
@@ -278,7 +278,7 @@
     border-top: 2px solid var(--color-ink);
   }
 
-  .linksOpen {
+  .nav .linksOpen {
     display: flex;
   }
 
