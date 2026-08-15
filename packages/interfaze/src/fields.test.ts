@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { findLine, flattenExtracted, usableText } from "./fields";
+import { findLine, flattenExtracted, moneyOnly, usableText } from "./fields";
 
 describe("usableText", () => {
   it("drops literal nulls that models sometimes emit", () => {
@@ -8,6 +8,15 @@ describe("usableText", () => {
     assert.equal(usableText("null"), "");
     assert.equal(usableText("N/A"), "");
     assert.equal(usableText("  Hillcrest  "), "Hillcrest");
+  });
+});
+
+describe("moneyOnly", () => {
+  it("strips a trailing POS tax flag without a polynomial whitespace regex", () => {
+    assert.equal(moneyOnly("$3.52T2"), "$3.52");
+    assert.equal(moneyOnly("$3.52 T2"), "$3.52");
+    assert.equal(moneyOnly("  $2.96T2  "), "$2.96");
+    assert.equal(moneyOnly("6.61"), "6.61");
   });
 });
 

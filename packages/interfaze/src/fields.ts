@@ -11,7 +11,10 @@ export function usableText(value: unknown) {
 
 /** Interfaze sometimes leaves POS tax flags on the amount (`$3.52T2`). */
 export function moneyOnly(value: string) {
-  return value.replace(/\s*T\d+\s*$/i, "").trim();
+  const trimmed = value.trim();
+  const flagAt = trimmed.search(/T\d+$/i);
+  if (flagAt < 0) return trimmed;
+  return trimmed.slice(0, flagAt).trimEnd();
 }
 
 const HEADER_KEYS = ["merchant", "recipient", "sender", "date", "currency", "status", "note"];

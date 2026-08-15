@@ -20,6 +20,18 @@ function groupIdFromPage() {
   return new URLSearchParams(window.location.search).get("group");
 }
 
+const SAMPLE_RECEIPT_PREVIEW = "/samples/receipt.png";
+
+function receiptPreviewSrc(url: string | null | undefined, fallback = "") {
+  if (!url) return fallback;
+  if (url.startsWith("blob:")) return url;
+  if (url.startsWith("data:image/jpeg")) return url;
+  if (url.startsWith("data:image/png")) return url;
+  if (url.startsWith("data:image/webp")) return url;
+  if (url === SAMPLE_RECEIPT_PREVIEW) return url;
+  return fallback;
+}
+
 function ScanReceipt({ onTypeInstead }: { onTypeInstead: () => void }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -100,8 +112,14 @@ function ScanReceipt({ onTypeInstead }: { onTypeInstead: () => void }) {
     }
     setError(null);
     setFile(next);
-    setPreview(URL.createObjectURL(next));
+    setPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(next);
+    });
   }
+
+  const selectedPreview = receiptPreviewSrc(preview);
+  const readingPreview = receiptPreviewSrc(preview, SAMPLE_RECEIPT_PREVIEW);
 
   return (
     <main className={styles.page}>
@@ -117,7 +135,7 @@ function ScanReceipt({ onTypeInstead }: { onTypeInstead: () => void }) {
         <section className={styles.card}>
           <div className={styles.scan}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview || "/samples/receipt.png"} alt="Receipt being read" />
+            <img src={readingPreview} alt="Receipt being read" />
             <span className={styles.beam} />
           </div>
           <div className={styles.status}>
@@ -151,9 +169,9 @@ function ScanReceipt({ onTypeInstead }: { onTypeInstead: () => void }) {
               data-testid="new-file"
               onChange={(e) => takeFile(e.target.files?.[0] ?? null)}
             />
-            {preview ? (
+            {selectedPreview ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={preview} alt="Selected receipt" className={styles.preview} />
+              <img src={selectedPreview} alt="Selected receipt" className={styles.preview} />
             ) : (
               <>
                 <span className={styles.uploadMark}>
