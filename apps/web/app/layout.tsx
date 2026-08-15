@@ -1,16 +1,27 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "@proofsheet/ui/tokens.css";
 import "./globals.css";
 import "./shell.css";
 
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
+const display = localFont({
+  src: "./fonts/bricolage-grotesque-latin.woff2",
   variable: "--font-display-loaded",
-  weight: ["700", "800"],
+  weight: "200 800",
+  display: "swap",
 });
-const body = Geist({ subsets: ["latin"], variable: "--font-body-loaded", weight: ["400", "500", "600"] });
-const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono-loaded", weight: ["400", "500", "600"] });
+const body = localFont({
+  src: "./fonts/geist-latin.woff2",
+  variable: "--font-body-loaded",
+  weight: "100 900",
+  display: "swap",
+});
+const mono = localFont({
+  src: "./fonts/geist-mono-latin.woff2",
+  variable: "--font-mono-loaded",
+  weight: "100 900",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Vouch — split the receipt, not the friendship",
