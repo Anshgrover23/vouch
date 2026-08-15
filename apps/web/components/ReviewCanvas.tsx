@@ -3,6 +3,7 @@
 import { createContext, use, useMemo, useState, type ReactNode } from "react";
 import {
   computedReceiptTotal,
+  currencySymbol,
   formatMoney,
   moneyInputText,
   isClaimableKey,
@@ -12,6 +13,7 @@ import {
   isReceiptTotalSourceKey,
   lineShare,
   partitionReceiptFields,
+  receiptCurrency,
   sanitizeFieldValue,
   type ClaimStance,
   type SplitClaim,
@@ -78,6 +80,17 @@ function useReview() {
   const ctx = use(ReviewContext);
   if (!ctx) throw new Error("Review parts must render inside Review.Root");
   return ctx;
+}
+
+function useReceiptMoney() {
+  const {
+    meta: { fields },
+  } = useReview();
+  const currency = receiptCurrency(fields);
+  return {
+    symbol: currencySymbol(currency),
+    money: (value: string | number | null) => formatMoney(value, currency),
+  };
 }
 
 function Root({
@@ -332,6 +345,7 @@ function LineNote({
   share: ReturnType<typeof lineShare>;
   canClaim: boolean;
 }) {
+  const { money } = useReceiptMoney();
   const {
     meta: { displayName },
   } = useReview();
@@ -339,8 +353,8 @@ function LineNote({
     return (
       <p className={styles.hint}>
         {share.split
-          ? `${share.names.join(", ")} · ${formatMoney(share.each)} each`
-          : `${share.names[0]} · ${formatMoney(share.each)}. The other person taps Split equally to share it.`}
+          ? `${share.names.join(", ")} · ${money(share.each)} each`
+          : `${share.names[0]} · ${money(share.each)}. The other person taps Split equally to share it.`}
       </p>
     );
   }
@@ -365,6 +379,7 @@ function PriceField({
   value: string;
   original: string;
 }) {
+  const { symbol } = useReceiptMoney();
   const {
     state: { saving },
     actions: { setActive, setDraft, save },
@@ -376,7 +391,7 @@ function PriceField({
   return (
     <label className={styles.money}>
       <span className={styles.currency} aria-hidden>
-        $
+        {symbol}
       </span>
       <input
         className={styles.price}
@@ -408,11 +423,12 @@ function PriceField({
 }
 
 function ReadOnlyMoney({ field, value }: { field: CanvasField; value: string }) {
+  const { symbol } = useReceiptMoney();
   const amount = moneyInputText(value).replace(/[^0-9.]/g, "") || moneyInputText(value);
   return (
     <span className={styles.money} data-testid={`line-value-${field.key}`}>
       <span className={styles.currency} aria-hidden>
-        $
+        {symbol}
       </span>
       <span
         className={styles.amount}
@@ -550,6 +566,7 @@ function OtherLine({
   readOnly: boolean;
   section: "head" | "item" | "foot";
 }) {
+  const { money } = useReceiptMoney();
   const {
     state: { active, drafts, saving },
     actions: { setActive, setDraft, save, saveLabel, remove, claim },
@@ -558,8 +575,8 @@ function OtherLine({
 
   const value = rawValue(field, drafts);
   const original = sanitizeFieldValue(field.humanValue) || sanitizeFieldValue(field.modelValue);
-  const money = isMoneyMetaKey(field.key) || isMoneyEditKey(field.key) || field.key === "remainder";
-  const display = money ? formatMoney(value) || value : value;
+  const isMoney = isMoneyMetaKey(field.key) || isMoneyEditKey(field.key) || field.key === "remainder";
+  const display = isMoney ? money(value) || value : value;
   const owner = Boolean(saveLabel || remove);
   const canEdit = Boolean(
     !readOnly &&
@@ -583,7 +600,7 @@ function OtherLine({
     >
       <div className={styles.line}>
         <span className={styles.metaLabel}>{field.label}</span>
-        {canEdit && money ? (
+        {canEdit && isMoney ? (
           <PriceField field={field} value={value} original={original} />
         ) : canEdit ? (
           <input
@@ -610,7 +627,7 @@ function OtherLine({
             spellCheck={false}
             inputMode="text"
           />
-        ) : money ? (
+        ) : isMoney ? (
           <ReadOnlyMoney field={field} value={value} />
         ) : (
           <p className={styles.metaValue} data-testid={`line-value-${field.key}`}>
@@ -658,7 +675,7 @@ function Fields({ readOnly = false }: { readOnly?: boolean }) {
 
   return (
     <ol className={styles.fields} data-testid="review-lines">
-      {header.map((field) => (
+      {header.filter((field) => field.key !== "currency").map((field) => (
         <OtherLine key={field.id} field={field} readOnly={readOnly} section="head" />
       ))}
       {items.map((field) =>

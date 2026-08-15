@@ -189,8 +189,8 @@ export function receiptsCsv(receipts: LedgerReceipt[], people: string[]) {
   return [csvEscapeRow(headers), ...rows.map((row) => csvEscapeRow(row))].join("\n");
 }
 
-export function moneyLabel(value: number) {
-  const abs = formatMoney(Math.abs(value));
+export function moneyLabel(value: number, currency?: string) {
+  const abs = formatMoney(Math.abs(value), currency);
   if (value > 0) return `+${abs}`;
   if (value < 0) return `−${abs}`;
   return abs;

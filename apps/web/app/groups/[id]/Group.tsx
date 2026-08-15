@@ -44,6 +44,7 @@ type GroupState = {
   balances: GroupBalance[];
   suggested: GroupSuggested[];
   totals: GroupTotals;
+  currency: string;
   activity: GroupActivity[];
   loading: boolean;
   error: string | null;
@@ -69,6 +70,16 @@ function useGroup() {
   return ctx;
 }
 
+function useGroupMoney() {
+  const {
+    state: { currency },
+  } = useGroup();
+  return {
+    money: (value: string | number | null) => formatMoney(value, currency),
+    label: (value: number) => moneyLabel(value, currency),
+  };
+}
+
 function emptyTotals(): GroupTotals {
   return { groupSpending: 0, youPaid: 0, yourShare: 0 };
 }
@@ -81,6 +92,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
   const [balances, setBalances] = useState<GroupBalance[]>([]);
   const [suggested, setSuggested] = useState<GroupSuggested[]>([]);
   const [totals, setTotals] = useState<GroupTotals>(emptyTotals);
+  const [currency, setCurrency] = useState("USD");
   const [activity, setActivity] = useState<GroupActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +116,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
         balances?: GroupBalance[];
         suggested?: GroupSuggested[];
         totals?: GroupTotals;
+        currency?: string;
         activity?: GroupActivity[];
       };
       setName(json.group?.name || "Group");
@@ -113,6 +126,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
       setBalances(json.balances ?? []);
       setSuggested(json.suggested ?? []);
       setTotals(json.totals ?? emptyTotals());
+      setCurrency(json.currency || "USD");
       setActivity(json.activity ?? []);
       setError(null);
     } catch {
@@ -186,6 +200,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
     balances,
     suggested,
     totals,
+    currency,
     activity,
     loading,
     error,
@@ -369,6 +384,7 @@ export function GroupBalances() {
     state: { balances, suggested },
     actions: { settle },
   } = useGroup();
+  const { money, label } = useGroupMoney();
   const max = Math.max(...balances.map((row) => Math.abs(row.net)), 0.01);
 
   return (
@@ -386,7 +402,7 @@ export function GroupBalances() {
                   style={{ width: `${(Math.abs(row.net) / max) * 100}%` }}
                 />
               </div>
-              <strong data-testid={`balance-net-${nameKey(row.name)}`}>{moneyLabel(row.net)}</strong>
+              <strong data-testid={`balance-net-${nameKey(row.name)}`}>{label(row.net)}</strong>
             </li>
           ))}
         </ul>
@@ -402,7 +418,7 @@ export function GroupBalances() {
             <li key={`${row.from}-${row.to}`} data-testid={`suggested-${nameKey(row.from)}-${nameKey(row.to)}`}>
               <span>
                 {row.from} → {row.to}{" "}
-                <strong>{formatMoney(row.amount)}</strong>
+                <strong>{money(row.amount)}</strong>
               </span>
               <button
                 className="btn"
@@ -425,20 +441,21 @@ export function GroupTotals() {
   const {
     state: { totals },
   } = useGroup();
+  const { money } = useGroupMoney();
   return (
     <section className={styles.panel} data-testid="group-totals">
       <dl className={styles.totals}>
         <div>
           <dt>Group spending</dt>
-          <dd data-testid="totals-spending">{formatMoney(totals.groupSpending)}</dd>
+          <dd data-testid="totals-spending">{money(totals.groupSpending)}</dd>
         </div>
         <div>
           <dt>You paid</dt>
-          <dd data-testid="totals-you-paid">{formatMoney(totals.youPaid)}</dd>
+          <dd data-testid="totals-you-paid">{money(totals.youPaid)}</dd>
         </div>
         <div>
           <dt>Your share</dt>
-          <dd data-testid="totals-your-share">{formatMoney(totals.yourShare)}</dd>
+          <dd data-testid="totals-your-share">{money(totals.yourShare)}</dd>
         </div>
       </dl>
       <p className={styles.hint}>Group spending excludes settlements.</p>

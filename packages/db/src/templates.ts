@@ -15,6 +15,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
       properties: {
         merchant: { type: "string" },
         date: { type: "string" },
+        currency: { type: "string" },
         items: {
           type: "array",
           items: {
@@ -31,7 +32,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         tip: { type: "string" },
         total: { type: "string" },
       },
-      required: ["merchant", "date", "total", "items"],
+      required: ["merchant", "date", "currency", "total", "items"],
     },
   },
   {
@@ -44,11 +45,12 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
         sender: { type: "string" },
         recipient: { type: "string" },
         amount: { type: "string" },
+        currency: { type: "string" },
         date: { type: "string" },
         status: { type: "string" },
         note: { type: "string" },
       },
-      required: ["sender", "recipient", "amount", "date", "status"],
+      required: ["sender", "recipient", "amount", "currency", "date", "status"],
     },
   },
 ];

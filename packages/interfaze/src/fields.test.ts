@@ -29,6 +29,26 @@ describe("flattenExtracted", () => {
     );
   });
 
+  it("keeps Interfaze currency as a header field", () => {
+    const rows = flattenExtracted({
+      merchant: "Namo Tandoori Chai",
+      date: "16/08/26",
+      currency: "INR",
+      items: [{ name: "Masala Chai", price: "120.00" }],
+      total: "265.00",
+    });
+    assert.deepEqual(
+      rows.map((row) => `${row.key}:${row.value}`),
+      [
+        "merchant:Namo Tandoori Chai",
+        "date:16/08/26",
+        "currency:INR",
+        "item_1:120.00",
+        "total:265.00",
+      ],
+    );
+  });
+
   it("keeps Interfaze subtotal and tax as their own fields", () => {
     const rows = flattenExtracted({
       merchant: "CASHIERS FARMERS MARKET",

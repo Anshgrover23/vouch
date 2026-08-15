@@ -10,6 +10,8 @@ import {
 import {
   assignedTotal,
   computedReceiptTotal,
+  exportLine,
+  fieldValue,
   formatMoney,
   isClaimableKey,
   isMoneyEditKey,
@@ -17,6 +19,7 @@ import {
   moneyInputText,
   partitionReceiptFields,
   personShares,
+  receiptCurrency,
   remainderGap,
   roundMoney,
   splitBalance,
@@ -210,9 +213,31 @@ describe("formatMoney", () => {
     assert.equal(formatMoney("$92.77"), "$92.77");
     assert.equal(formatMoney("$$92.7"), "$92.70");
     assert.equal(formatMoney("92.77"), "$92.77");
+    assert.equal(formatMoney("84.20", "USD"), "$84.20");
+    assert.equal(formatMoney(5.29, "USD"), "$5.29");
+    assert.equal(formatMoney("$84.20", "USD"), "$84.20");
     assert.equal(moneyInputText("$92.77"), "92.77");
     assert.equal(moneyInputText("$$92.7"), "92.7");
     assert.equal(moneyInputText("92.77"), "92.77");
+  });
+
+  it("keeps the Hillcrest fixture in dollars", () => {
+    const fields = hillcrest();
+    assert.equal(receiptCurrency(fields), "USD");
+    assert.equal(formatMoney(fieldValue(fields, "total"), receiptCurrency(fields)), "$84.20");
+    assert.match(exportLine(fields, []), /\$84\.20/);
+  });
+
+  it("uses Interfaze INR instead of inventing a dollar sign", () => {
+    assert.equal(formatMoney("265.00", "INR"), "₹265.00");
+    assert.equal(formatMoney("₹ 265.00"), "₹265.00");
+    assert.equal(moneyInputText("₹ 265.00"), "265.00");
+    assert.equal(moneyInputText("INR 265.00"), "265.00");
+    assert.equal(
+      receiptCurrency([field({ key: "currency", label: "Currency", modelValue: "INR" })]),
+      "INR",
+    );
+    assert.equal(receiptCurrency([]), "USD");
   });
 });
 

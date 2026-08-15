@@ -18,7 +18,7 @@ import {
   type LedgerReceipt,
   type LedgerSettlement,
 } from "@/lib/ledger";
-import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouchedCount } from "@/lib/split";
+import { fieldValue, formatMoney, ledgerCurrency, prettyTitle, receiptCurrency, receiptHeadline, shortDate, vouchedCount } from "@/lib/split";
 import { visibleFields } from "@/lib/remainder";
 
 type QueryDb = Pick<Database, "select">;
@@ -116,7 +116,7 @@ export async function loadGroupLedger(
         id: doc.id,
         merchant: receiptHeadline(receipt.fields, prettyTitle(doc.title)),
         date: shortDate(fieldValue(receipt.fields, "date")),
-        total: formatMoney(fieldValue(receipt.fields, "total") || fieldValue(receipt.fields, "amount")),
+        total: formatMoney(fieldValue(receipt.fields, "total") || fieldValue(receipt.fields, "amount"), receiptCurrency(receipt.fields)),
         paidByName: doc.paidByName,
         people: vouchedCount(receipt.claims),
         createdAt: doc.createdAt,
@@ -125,6 +125,7 @@ export async function loadGroupLedger(
     balances,
     suggested,
     totals,
+    currency: ledgerCurrency(receipts),
     settlements: settlementRows.map((row) => ({
       id: row.id,
       fromName: row.fromName,

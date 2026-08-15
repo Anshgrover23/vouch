@@ -38,18 +38,97 @@ export function parseMoney(value: string | null | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-export function formatMoney(value: string | number | null) {
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  INR: "₹",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  AUD: "A$",
+  CAD: "C$",
+  SGD: "S$",
+};
+
+const CURRENCY_ALIASES: Record<string, string> = {
+  $: "USD",
+  USD: "USD",
+  US$: "USD",
+  DOLLAR: "USD",
+  DOLLARS: "USD",
+  "₹": "INR",
+  INR: "INR",
+  RS: "INR",
+  "RS.": "INR",
+  RUPEE: "INR",
+  RUPEES: "INR",
+  "€": "EUR",
+  EUR: "EUR",
+  EURO: "EUR",
+  "£": "GBP",
+  GBP: "GBP",
+  POUND: "GBP",
+};
+
+export function normalizeCurrency(raw: string | null | undefined) {
+  const text = (raw ?? "").trim().toUpperCase();
+  if (!text) return "USD";
+  return CURRENCY_ALIASES[text] ?? (CURRENCY_SYMBOLS[text] ? text : "USD");
+}
+
+export function currencySymbol(code: string) {
+  return CURRENCY_SYMBOLS[normalizeCurrency(code)] ?? "$";
+}
+
+function inferCurrencyFromValue(value: string) {
+  if (/₹|\bRs\.?\b|\bINR\b/i.test(value)) return "INR";
+  if (/€|\bEUR\b/i.test(value)) return "EUR";
+  if (/£|\bGBP\b/i.test(value)) return "GBP";
+  return "USD";
+}
+
+export function receiptCurrency(fields: SplitField[]) {
+  return normalizeCurrency(fieldValue(fields, "currency"));
+}
+
+export function ledgerCurrency(receipts: Array<{ fields: SplitField[] }>) {
+  const counts = new Map<string, number>();
+  for (const receipt of receipts) {
+    const code = receiptCurrency(receipt.fields);
+    counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+  let best = "USD";
+  let n = 0;
+  for (const [code, count] of counts) {
+    if (count > n) {
+      best = code;
+      n = count;
+    }
+  }
+  return best;
+}
+
+export function formatMoney(value: string | number | null, currency?: string) {
   if (value == null || value === "") return "";
-  if (typeof value === "number") return `$${value.toFixed(2)}`;
+  const code =
+    currency != null && currency !== ""
+      ? normalizeCurrency(currency)
+      : typeof value === "string"
+        ? inferCurrencyFromValue(value)
+        : "USD";
+  const symbol = currencySymbol(code);
+  if (typeof value === "number") return `${symbol}${value.toFixed(2)}`;
   const n = parseMoney(value);
-  if (n == null) return value.replace(/^\$+\s*/, "");
-  return `$${n.toFixed(2)}`;
+  if (n == null) return moneyInputText(value);
+  return `${symbol}${n.toFixed(2)}`;
 }
 
 export function moneyInputText(value: string | number | null | undefined) {
   if (value == null || value === "") return "";
   if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
-  return String(value).trim().replace(/^\$+\s*/, "");
+  return String(value)
+    .trim()
+    .replace(/^(?:[A-Z]{3}|Rs\.?|US\$)\s*/i, "")
+    .replace(/^[₹$€£¥]+\s*/, "");
 }
 
 export function shortDate(raw: string) {
@@ -78,7 +157,8 @@ export function vouchedCount(claims: Array<{ displayName: string }>) {
 export function exportLine(fields: SplitField[], claims: SplitClaim[]) {
   const merchant = fieldValue(fields, "merchant") || fieldValue(fields, "recipient") || "Receipt";
   const date = shortDate(fieldValue(fields, "date"));
-  const total = formatMoney(fieldValue(fields, "total") || fieldValue(fields, "amount"));
+  const currency = receiptCurrency(fields);
+  const total = formatMoney(fieldValue(fields, "total") || fieldValue(fields, "amount"), currency);
   const n = vouchedCount(claims);
   const people = n === 1 ? "1 person vouched" : `${n} people vouched`;
   return [merchant, date, total, people].filter(Boolean).join(" — ");
@@ -111,7 +191,7 @@ export function isItemRowKey(key: string) {
   return /^item_\d+$/.test(key);
 }
 
-const HEADER_KEYS = ["merchant", "recipient", "sender", "date", "status", "note"];
+const HEADER_KEYS = ["merchant", "recipient", "sender", "date", "currency", "status", "note"];
 const FOOTER_KEYS = ["subtotal", "tax", "tip", "total", "remainder"];
 
 export function isMoneyMetaKey(key: string) {
@@ -270,9 +350,10 @@ export function chatSplit(fields: SplitField[], claims: SplitClaim[]) {
   const people = personShares(fields, claims);
   const { open, status } = splitBalance(fields, claims);
   const head = exportLine(fields, claims);
+  const currency = receiptCurrency(fields);
   const parts = [
-    ...people.map((p) => `${p.name} ${formatMoney(p.total)}`),
-    status === "open" ? `still open ${formatMoney(open)}` : "",
+    ...people.map((p) => `${p.name} ${formatMoney(p.total, currency)}`),
+    status === "open" ? `still open ${formatMoney(open, currency)}` : "",
   ].filter(Boolean);
   if (parts.length === 0) return head;
   return `${head}\n${parts.join(" · ")}`;

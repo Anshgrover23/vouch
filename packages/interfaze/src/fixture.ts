@@ -34,6 +34,7 @@ export const GROCERY_REMAINDER = 9.57;
 export const groceryFields: ExtractedField[] = [
   { key: "merchant", label: fieldLabels.merchant, value: "HILLCREST MARKET", confidence: 0.99, bounds: box(180, 78, 660, 72) },
   { key: "date", label: fieldLabels.date, value: "AUG 13 2026", confidence: 0.96, bounds: box(300, 292, 424, 40) },
+  { key: "currency", label: fieldLabels.currency, value: "USD", confidence: 0.99, bounds: null },
   ...groceryItems.map((item, i) => ({
     key: `item_${i + 1}`,
     label: itemLabel(i + 1, item.name),
@@ -46,6 +47,7 @@ export const groceryFields: ExtractedField[] = [
 
 const paymentFields: ExtractedField[] = [
   { key: "amount", label: fieldLabels.amount, value: "42.00", confidence: 0.99, bounds: box(72, 340, 420, 88) },
+  { key: "currency", label: fieldLabels.currency, value: "USD", confidence: 0.99, bounds: null },
   { key: "recipient", label: fieldLabels.recipient, value: "Jordan Hale", confidence: 0.97, bounds: box(72, 478, 520, 36) },
   { key: "sender", label: fieldLabels.sender, value: "Rio Chen", confidence: 0.96, bounds: box(72, 538, 480, 36) },
   { key: "status", label: fieldLabels.status, value: "Completed", confidence: 0.95, bounds: box(72, 628, 200, 44) },

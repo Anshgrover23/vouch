@@ -1,8 +1,8 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { documents, fields, splitClaims, type Database } from "@proofsheet/db";
-import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouchedCount } from "./split";
+import { fieldValue, formatMoney, prettyTitle, receiptCurrency, receiptHeadline, shortDate, vouchedCount } from "./split";
 
-const LIST_FIELD_KEYS = ["merchant", "recipient", "date", "total", "amount"];
+const LIST_FIELD_KEYS = ["merchant", "recipient", "date", "total", "amount", "currency"];
 
 export type WorkspaceSplitRow = {
   id: string;
@@ -66,7 +66,7 @@ export async function listWorkspaceSplits(database: Database, workspaceId: strin
       error: doc.error,
       merchant: receiptHeadline(docFields, prettyTitle(doc.title)),
       date: shortDate(fieldValue(docFields, "date")),
-      total: formatMoney(fieldValue(docFields, "total") || fieldValue(docFields, "amount")),
+      total: formatMoney(fieldValue(docFields, "total") || fieldValue(docFields, "amount"), receiptCurrency(docFields)),
       people: vouchedCount(docClaims),
     };
   });

@@ -14,7 +14,7 @@ export function moneyOnly(value: string) {
   return value.replace(/\s*T\d+\s*$/i, "").trim();
 }
 
-const HEADER_KEYS = ["merchant", "recipient", "sender", "date", "status", "note"];
+const HEADER_KEYS = ["merchant", "recipient", "sender", "date", "currency", "status", "note"];
 const FOOTER_KEYS = ["subtotal", "tax", "tip", "total", "amount"];
 const MONEY_KEYS = new Set(["total", "amount", "subtotal", "tax", "tip"]);
 

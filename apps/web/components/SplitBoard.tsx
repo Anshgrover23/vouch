@@ -5,6 +5,7 @@ import {
   chatSplit,
   formatMoney,
   personShares,
+  receiptCurrency,
   splitBalance,
   type SplitClaim,
   type SplitField,
@@ -27,6 +28,7 @@ export function SplitBoard({
   const [copied, setCopied] = useState(false);
   const people = personShares(fields, claims);
   const { receipt, assigned, open, leftover, leftoverSum, status } = splitBalance(fields, claims);
+  const money = (value: string | number | null) => formatMoney(value, receiptCurrency(fields));
 
   async function copy() {
     await navigator.clipboard.writeText(chatSplit(fields, claims));
@@ -57,15 +59,15 @@ export function SplitBoard({
         <dl className={styles.ledger} data-testid="split-ledger">
           <div>
             <dt>Receipt</dt>
-            <dd>{receipt != null ? formatMoney(receipt) : "—"}</dd>
+            <dd>{receipt != null ? money(receipt) : "—"}</dd>
           </div>
           <div>
             <dt>Claimed</dt>
-            <dd>{formatMoney(assigned)}</dd>
+            <dd>{money(assigned)}</dd>
           </div>
           <div className={status === "over" ? styles.over : status === "open" ? styles.gap : undefined}>
             <dt>{status === "over" ? "Over" : "Open"}</dt>
-            <dd>{formatMoney(status === "over" && receipt != null ? assigned - receipt : open)}</dd>
+            <dd>{money(status === "over" && receipt != null ? assigned - receipt : open)}</dd>
           </div>
         </dl>
       ) : null}
@@ -86,7 +88,7 @@ export function SplitBoard({
               <li key={person.name} data-testid={`person-${slug}`}>
                 <div className={styles.row}>
                   <strong>{person.name}</strong>
-                  <span data-testid={`person-total-${slug}`}>{formatMoney(person.total)}</span>
+                  <span data-testid={`person-total-${slug}`}>{money(person.total)}</span>
                 </div>
                 <p className={styles.count}>
                   {person.lines.length === 1 ? "1 item" : `${person.lines.length} items`}
@@ -95,7 +97,7 @@ export function SplitBoard({
                   {person.lines.map((line, i) => (
                     <li key={`${person.name}-${i}`}>
                       <em>{line.label}</em>
-                      <b>{formatMoney(line.share)}</b>
+                      <b>{money(line.share)}</b>
                     </li>
                   ))}
                 </ul>
@@ -107,7 +109,7 @@ export function SplitBoard({
               <div className={styles.row}>
                 <strong>Still open</strong>
                 <span data-testid="still-open-total">
-                  {leftoverSum ? formatMoney(leftoverSum) : `${leftover.length} lines`}
+                  {leftoverSum ? money(leftoverSum) : `${leftover.length} lines`}
                 </span>
               </div>
               <p className={styles.count}>
@@ -117,7 +119,7 @@ export function SplitBoard({
                 {leftover.map((field) => (
                   <li key={field.id ?? field.label}>
                     <em>{field.label}</em>
-                    <b>{formatMoney(field.humanValue ?? field.modelValue)}</b>
+                    <b>{money(field.humanValue ?? field.modelValue)}</b>
                   </li>
                 ))}
               </ul>
