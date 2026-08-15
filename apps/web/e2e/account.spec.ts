@@ -1,5 +1,17 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { PASSWORD, skipOnboarding, signupViaApi, uniqueEmail } from "./helpers";
+
+async function expectPhoneMenuFullBleed(page: Page, navSelector: string) {
+  const header = page.locator("header").first();
+  const nav = page.locator(navSelector);
+  await expect(nav).toBeVisible();
+  const headerBox = await header.boundingBox();
+  const navBox = await nav.boundingBox();
+  expect(headerBox).toBeTruthy();
+  expect(navBox).toBeTruthy();
+  expect(navBox!.width).toBeGreaterThan(headerBox!.width * 0.85);
+  expect(Math.abs(navBox!.x - headerBox!.x)).toBeLessThan(24);
+}
 
 test.describe("account and landing product", () => {
   test("landing markets groups and signed-in nav is Account, not Log out", async ({ page }) => {
@@ -34,8 +46,12 @@ test.describe("account and landing product", () => {
     await expect(page.getByTestId("nav-splits")).toBeVisible();
     await expect(page.getByTestId("nav-groups")).toBeVisible();
     await expect(page.getByTestId("nav-account")).toHaveText("Account");
+    await expectPhoneMenuFullBleed(page, "#site-nav-links");
     await page.getByTestId("nav-groups").click();
     await page.waitForURL(/\/groups/);
+    await expect(page.getByTestId("nav-menu")).toBeVisible();
+    await page.getByTestId("nav-menu").click();
+    await expectPhoneMenuFullBleed(page, "#app-nav-links");
   });
 
   test("/account saves name, changes password, and log out lands on /", async ({ page }) => {

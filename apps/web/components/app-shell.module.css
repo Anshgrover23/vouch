@@ -150,12 +150,7 @@
     grid-template-areas: "brand menu cta";
     padding: 10px 12px;
     column-gap: 8px;
-  }
-
-  .top:has(.navOpen) {
-    grid-template-areas:
-      "brand menu cta"
-      "nav nav nav";
+    row-gap: 8px;
   }
 
   .menuBtn {
@@ -166,8 +161,12 @@
 
   .nav {
     display: none;
+    grid-area: auto;
+    grid-column: 1 / -1;
+    justify-self: stretch;
     flex-direction: column;
     gap: 4px;
+    width: 100%;
     padding: 8px 0 0;
     border-top: 2px solid var(--color-ink);
   }
