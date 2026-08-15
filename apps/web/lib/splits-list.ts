@@ -16,7 +16,7 @@ export type WorkspaceSplitRow = {
 };
 
 export async function listWorkspaceSplits(database: Database, workspaceId: string): Promise<WorkspaceSplitRow[]> {
-  const rows = await database
+  const docsQuery = database
     .select({
       id: documents.id,
       status: documents.status,
@@ -27,25 +27,21 @@ export async function listWorkspaceSplits(database: Database, workspaceId: strin
     .from(documents)
     .where(eq(documents.workspaceId, workspaceId))
     .orderBy(desc(documents.createdAt));
-  const ids = rows.map((row) => row.id);
-  const [fieldRows, claimRows] = ids.length
-    ? await Promise.all([
-        database
-          .select({
-            documentId: fields.documentId,
-            key: fields.key,
-            label: fields.label,
-            modelValue: fields.modelValue,
-            humanValue: fields.humanValue,
-          })
-          .from(fields)
-          .where(and(inArray(fields.documentId, ids), inArray(fields.key, LIST_FIELD_KEYS))),
-        database
-          .select({ documentId: splitClaims.documentId, displayName: splitClaims.displayName })
-          .from(splitClaims)
-          .where(inArray(splitClaims.documentId, ids)),
-      ])
-    : [[], []];
+  const fieldsQuery = database
+    .select({
+      documentId: fields.documentId,
+      key: fields.key,
+      label: fields.label,
+      modelValue: fields.modelValue,
+      humanValue: fields.humanValue,
+    })
+    .from(fields)
+    .where(and(eq(fields.workspaceId, workspaceId), inArray(fields.key, LIST_FIELD_KEYS)));
+  const claimsQuery = database
+    .select({ documentId: splitClaims.documentId, displayName: splitClaims.displayName })
+    .from(splitClaims)
+    .where(eq(splitClaims.workspaceId, workspaceId));
+  const [rows, fieldRows, claimRows] = await Promise.all([docsQuery, fieldsQuery, claimsQuery]);
 
   const fieldsByDoc = new Map<string, typeof fieldRows>();
   for (const field of fieldRows) {

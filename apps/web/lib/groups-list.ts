@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { groupMembers, groupStars, groups, type Database } from "@proofsheet/db";
 
 export type WorkspaceGroupRow = {
@@ -20,17 +20,25 @@ export async function listWorkspaceGroups(
   database: Database,
   session: { workspaceId: string; userId: string },
 ): Promise<WorkspaceGroupRow[]> {
-  const rows = await database.select().from(groups).where(eq(groups.workspaceId, session.workspaceId));
-  const ids = rows.map((row) => row.id);
-  const [memberRows, starRows] = ids.length
-    ? await Promise.all([
-        database.select().from(groupMembers).where(inArray(groupMembers.groupId, ids)),
-        database
-          .select({ groupId: groupStars.groupId })
-          .from(groupStars)
-          .where(eq(groupStars.userId, session.userId)),
-      ])
-    : [[], []];
+  const [rows, memberRows, starRows] = await Promise.all([
+    database.select().from(groups).where(eq(groups.workspaceId, session.workspaceId)),
+    database
+      .select({
+        id: groupMembers.id,
+        groupId: groupMembers.groupId,
+        userId: groupMembers.userId,
+        displayName: groupMembers.displayName,
+        inviteToken: groupMembers.inviteToken,
+        status: groupMembers.status,
+      })
+      .from(groupMembers)
+      .innerJoin(groups, eq(groupMembers.groupId, groups.id))
+      .where(eq(groups.workspaceId, session.workspaceId)),
+    database
+      .select({ groupId: groupStars.groupId })
+      .from(groupStars)
+      .where(eq(groupStars.userId, session.userId)),
+  ]);
   const membersByGroup = new Map<string, typeof memberRows>();
   for (const member of memberRows) {
     const list = membersByGroup.get(member.groupId) ?? [];

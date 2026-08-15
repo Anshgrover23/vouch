@@ -23,6 +23,8 @@ const mono = localFont({
   display: "swap",
 });
 
+export const preferredRegion = "bom1";
+
 export const metadata: Metadata = {
   title: "Vouch — split the receipt, not the friendship",
   description: "Upload the crumpled receipt. Housemates tap the lines they actually owe. Everyone vouches. Nobody argues about organic blueberries.",
