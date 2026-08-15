@@ -1,8 +1,12 @@
 import { expect, test } from "@playwright/test";
 import {
   PASSWORD,
+  createGroceryReceipt,
+  loginViaUi,
+  logoutViaUi,
   skipOnboarding,
   signupViaApi,
+  signupViaUi,
   uniqueEmail,
 } from "./helpers";
 
@@ -82,7 +86,16 @@ test.describe("auth and landing", () => {
     await page.getByTestId("auth-email").fill(email);
     await page.getByTestId("auth-password").fill("not-the-password");
     await page.getByTestId("auth-submit").click();
-    await expect(page.getByTestId("auth-error")).toBeVisible();
+    await expect(page.getByTestId("auth-error")).toHaveText("Email or password is incorrect.");
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test("/login with an unknown email stays and shows the same error", async ({ page }) => {
+    await page.goto("/login");
+    await page.getByTestId("auth-email").fill(uniqueEmail("missing"));
+    await page.getByTestId("auth-password").fill(PASSWORD);
+    await page.getByTestId("auth-submit").click();
+    await expect(page.getByTestId("auth-error")).toHaveText("Email or password is incorrect.");
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -102,7 +115,7 @@ test.describe("auth and landing", () => {
     await page.getByTestId("auth-email").fill("demo@proofsheet.dev");
     await page.getByTestId("auth-password").fill(PASSWORD);
     await page.getByTestId("auth-submit").click();
-    await expect(page.getByTestId("auth-error")).toBeVisible();
+    await expect(page.getByTestId("auth-error")).toHaveText("Email or password is incorrect.");
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -131,5 +144,51 @@ test.describe("auth and landing", () => {
     await page.getByTestId("auth-submit").click();
     await page.waitForURL(/\/groups/);
     await expect(page.getByRole("heading", { name: "Your groups" })).toBeVisible();
+  });
+
+  test("UI signup cookie survives reload; logout then login with the same password", async ({ page }) => {
+    const email = uniqueEmail("ui-loop").replace(/@vouch\.test$/i, "@Vouch.TEST");
+    await signupViaUi(page, { name: "Ansh", email });
+    await page.reload();
+    await expect(page).toHaveURL(/\/onboarding/);
+    expect((await page.request.get("/api/auth/me")).ok()).toBeTruthy();
+
+    await skipOnboarding(page);
+    await logoutViaUi(page);
+    expect((await page.request.get("/api/auth/me")).status()).toBe(401);
+
+    await loginViaUi(page, { email });
+    await page.waitForURL(/\/inbox/);
+    await expect(page.getByTestId("inbox-empty")).toBeVisible();
+    expect((await page.request.get("/api/auth/me")).ok()).toBeTruthy();
+
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/inbox/);
+    await page.goto("/signup");
+    await expect(page).toHaveURL(/\/inbox/);
+  });
+
+  test("duplicate signup stays and says the email is in use", async ({ page }) => {
+    const email = uniqueEmail("dup");
+    await signupViaApi(page, { name: "Ansh", email });
+    await page.request.post("/api/auth/logout");
+    await page.goto("/signup");
+    await page.getByTestId("auth-name").fill("Ansh");
+    await page.getByTestId("auth-email").fill(email);
+    await page.getByTestId("auth-password").fill(PASSWORD);
+    await page.getByTestId("auth-submit").click();
+    await expect(page.getByTestId("auth-error")).toHaveText("That email is already in use.");
+    await expect(page).toHaveURL(/\/signup/);
+  });
+
+  test("login next= sends you to the share link", async ({ page }) => {
+    const email = uniqueEmail("share-next");
+    await signupViaApi(page, { name: "Ansh", email });
+    await skipOnboarding(page);
+    const { shareToken } = await createGroceryReceipt(page);
+    await page.request.post("/api/auth/logout");
+    await loginViaUi(page, { email, next: `/s/${shareToken}` });
+    await page.waitForURL((url) => url.pathname === `/s/${shareToken}`);
+    await expect(page.getByTestId("split-board")).toBeVisible();
   });
 });

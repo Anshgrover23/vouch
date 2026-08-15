@@ -1,4 +1,14 @@
 export const COOKIE = "proofsheet_session";
+export const SESSION_MAX_AGE = 60 * 60 * 24 * 14;
+
+export function sessionCookieFlags() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+  };
+}
 
 export type Session = {
   userId: string;

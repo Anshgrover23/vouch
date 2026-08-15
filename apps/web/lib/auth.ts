@@ -3,25 +3,20 @@ import { NextResponse } from "next/server";
 import { DEMO_USER_ID, DEMO_WORKSPACE_ID } from "@proofsheet/db";
 import {
   COOKIE,
+  SESSION_MAX_AGE,
   decodeSession,
   encodeSession,
+  sessionCookieFlags,
   type Session,
 } from "@/lib/session-cookie";
 
 export type { Session };
-export { COOKIE, decodeSession, encodeSession };
-
-const cookieBase = {
-  httpOnly: true,
-  sameSite: "lax" as const,
-  path: "/",
-};
+export { COOKIE, decodeSession, encodeSession, sessionCookieFlags };
 
 export function sessionCookieOptions() {
   return {
-    ...cookieBase,
-    maxAge: 60 * 60 * 24 * 14,
-    secure: process.env.NODE_ENV === "production",
+    ...sessionCookieFlags(),
+    maxAge: SESSION_MAX_AGE,
   };
 }
 
@@ -54,7 +49,7 @@ export async function attachSession(res: NextResponse, session: Session) {
 }
 
 export function clearSessionCookie(res: NextResponse) {
-  res.cookies.set(COOKIE, "", { ...cookieBase, maxAge: 0 });
+  res.cookies.set(COOKIE, "", { ...sessionCookieFlags(), maxAge: 0, expires: new Date(0) });
   return res;
 }
 

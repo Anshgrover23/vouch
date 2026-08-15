@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { decodeSession, encodeSession } from "./session-cookie";
-import { afterAuthPath, safeNextPath } from "./paths";
+import { decodeSession, encodeSession, sessionCookieFlags } from "./session-cookie";
+import { afterAuthPath, parseEmail, safeNextPath } from "./paths";
 
 describe("session cookie", () => {
   it("round-trips a signed session", async () => {
@@ -58,6 +58,14 @@ describe("session cookie", () => {
     const session = await decodeSession(token);
     assert.equal(session?.onboarded, true);
   });
+
+  it("clears a cookie with the same path, sameSite, and secure flag used to set it", () => {
+    const flags = sessionCookieFlags();
+    assert.equal(flags.path, "/");
+    assert.equal(flags.sameSite, "lax");
+    assert.equal(flags.httpOnly, true);
+    assert.equal(flags.secure, process.env.NODE_ENV === "production");
+  });
 });
 
 describe("safeNextPath", () => {
@@ -65,6 +73,12 @@ describe("safeNextPath", () => {
     assert.equal(safeNextPath("//evil.test"), "/inbox");
     assert.equal(safeNextPath("https://evil.test"), "/inbox");
     assert.equal(safeNextPath("/s/abc"), "/s/abc");
+  });
+});
+
+describe("parseEmail", () => {
+  it("stores a lowercased email so login can match signup", () => {
+    assert.equal(parseEmail("Ansh@Vouch.Test"), "ansh@vouch.test");
   });
 });
 

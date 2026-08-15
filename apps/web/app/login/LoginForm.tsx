@@ -2,7 +2,8 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { AuthField } from "@/app/AuthField";
-import { afterAuthPath, emailIssue, passwordIssue } from "@/lib/paths";
+import { goAfterAuth } from "@/lib/auth-client";
+import { emailIssue, passwordIssue } from "@/lib/paths";
 import styles from "../auth.module.css";
 
 type FieldErrors = {
@@ -39,22 +40,25 @@ export function LoginForm({ next }: { next: string }) {
     }
 
     setBusy(true);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const json = (await res.json().catch(() => ({}))) as {
-      error?: string;
-      session?: { onboarded: boolean };
-    };
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(json.error || "Could not log in.");
+        return;
+      }
+      const saved = await goAfterAuth(next);
+      if (!saved) setError("Could not save your session.");
+    } catch {
+      setError("Could not log in.");
+    } finally {
       setBusy(false);
-      setError(json.error || "Could not log in.");
-      return;
     }
-    window.location.assign(afterAuthPath(Boolean(json.session?.onboarded), next));
   }
 
   return (

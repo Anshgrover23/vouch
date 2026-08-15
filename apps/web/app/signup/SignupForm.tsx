@@ -2,7 +2,8 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { AuthField } from "@/app/AuthField";
-import { afterAuthPath, emailIssue, passwordIssue } from "@/lib/paths";
+import { goAfterAuth } from "@/lib/auth-client";
+import { emailIssue, passwordIssue } from "@/lib/paths";
 import { displayNameIssue } from "@/lib/split";
 import styles from "../auth.module.css";
 
@@ -48,22 +49,25 @@ export function SignupForm({ next, invite }: { next: string; invite: string | nu
     }
 
     setBusy(true);
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, password, displayName, invite }),
-    });
-    const json = (await res.json().catch(() => ({}))) as {
-      error?: string;
-      session?: { onboarded: boolean };
-    };
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password, displayName, invite }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setError(json.error || "Could not create that account.");
+        return;
+      }
+      const saved = await goAfterAuth(next);
+      if (!saved) setError("Could not save your session.");
+    } catch {
+      setError("Could not create that account.");
+    } finally {
       setBusy(false);
-      setError(json.error || "Could not create that account.");
-      return;
     }
-    window.location.assign(afterAuthPath(Boolean(json.session?.onboarded), next));
   }
 
   return (

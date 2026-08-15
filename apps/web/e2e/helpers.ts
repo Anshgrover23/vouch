@@ -17,6 +17,23 @@ export async function signupViaUi(page: Page, account: { name: string; email: st
   await page.waitForURL(/\/onboarding/);
 }
 
+export async function loginViaUi(
+  page: Page,
+  account: { email: string; password?: string; next?: string },
+) {
+  const dest = account.next ? `/login?next=${encodeURIComponent(account.next)}` : "/login";
+  await page.goto(dest);
+  await page.getByTestId("auth-email").fill(account.email);
+  await page.getByTestId("auth-password").fill(account.password ?? PASSWORD);
+  await page.getByTestId("auth-submit").click();
+}
+
+export async function logoutViaUi(page: Page) {
+  await page.goto("/account");
+  await page.getByTestId("account-logout").getByRole("button", { name: "Log out" }).click();
+  await page.waitForURL("/");
+}
+
 export async function signupViaApi(
   page: Page,
   account: { name: string; email: string; password?: string },
