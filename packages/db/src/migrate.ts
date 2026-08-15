@@ -13,7 +13,7 @@ if (!url) {
 }
 
 const dir = dirname(fileURLToPath(import.meta.url));
-const files = ["0001_init.sql", "0003_splits.sql", "0004_auth_groups.sql", "0005_product.sql"];
+const files = ["0001_init.sql", "0003_splits.sql", "0004_auth_groups.sql", "0005_product.sql", "0006_group_name_unique.sql"];
 
 const sql = postgres(url, { max: 1, onnotice: () => {} });
 for (const name of files) {

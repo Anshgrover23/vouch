@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
-import { AppShell } from "@/components/AppShell";
+import { useRef, useState, type FormEvent } from "react";
 import { IconStar } from "@/components/Brand";
 import styles from "./groups.module.css";
 
@@ -59,8 +58,17 @@ function GroupListItem({ group, onStar }: { group: GroupRow; onStar: (group: Gro
   );
 }
 
-async function fetchGroups() {
-  return fetch("/api/groups", { credentials: "include" });
+export function GroupsListSkeleton({ count = 3 }: { count?: number }) {
+  return (
+    <ul className={styles.list} aria-hidden="true" data-testid="groups-skeleton">
+      {Array.from({ length: count }, (_, i) => (
+        <li key={i} className={styles.skelRow}>
+          <span className={styles.skelLine} />
+          <span className={`${styles.skelLine} ${styles.skelLineShort}`} />
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function CreateGroupForm({
@@ -71,26 +79,34 @@ export function CreateGroupForm({
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inflight = useRef(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (inflight.current) return;
+    inflight.current = true;
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/groups", {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    const json = (await res.json().catch(() => ({}))) as { error?: string; group?: { id: string; name: string } };
-    if (!res.ok || !json.group) {
+    try {
+      const res = await fetch("/api/groups", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string; group?: { id: string; name: string } };
+      if (!res.ok || !json.group) {
+        setError(json.error || "Could not create that group.");
+        return;
+      }
+      setName("");
+      onCreated(json.group);
+    } catch {
+      setError("Could not create that group.");
+    } finally {
+      inflight.current = false;
       setBusy(false);
-      setError(json.error || "Could not create that group.");
-      return;
     }
-    setName("");
-    setBusy(false);
-    onCreated(json.group);
   }
 
   return (
@@ -118,44 +134,10 @@ export function CreateGroupForm({
   );
 }
 
-export function GroupsHome() {
+export function GroupsHome({ initialGroups }: { initialGroups: GroupRow[] }) {
   const router = useRouter();
-  const [groups, setGroups] = useState<GroupRow[]>([]);
+  const [groups, setGroups] = useState<GroupRow[]>(initialGroups);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  async function load(alive: () => boolean) {
-    setLoading(true);
-    try {
-      const res = await fetchGroups();
-      if (!alive()) return;
-      if (res.status === 401) {
-        window.location.href = `/login?next=${encodeURIComponent("/groups")}`;
-        return;
-      }
-      if (!res.ok) {
-        setError("Groups could not load. Try again.");
-        return;
-      }
-      const json = (await res.json()) as { groups?: GroupRow[] };
-      if (!alive()) return;
-      setGroups(json.groups ?? []);
-      setError(null);
-    } catch {
-      if (!alive()) return;
-      setError("Groups could not load. Try again.");
-    } finally {
-      if (alive()) setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    let alive = true;
-    void load(() => alive);
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   async function toggleStar(group: GroupRow) {
     const next = !group.starred;
@@ -174,24 +156,16 @@ export function GroupsHome() {
   }
 
   return (
-    <AppShell title="Your groups">
+    <>
       {error ? (
         <p className={styles.err}>
           {error}{" "}
-          <button
-            type="button"
-            className={styles.retry}
-            onClick={() => {
-              setError(null);
-              void load(() => true);
-            }}
-          >
-            Try again
+          <button type="button" className={styles.retry} onClick={() => setError(null)}>
+            Dismiss
           </button>
         </p>
       ) : null}
-      {loading && !groups.length && !error ? <p className={styles.pending}>Loading groups…</p> : null}
-      {groups.length === 0 && !error && !loading ? (
+      {groups.length === 0 ? (
         <div className={styles.empty}>
           <h2>No groups yet.</h2>
           <p>Skipped this on the way in? Name a house or a trip here. One-off receipts still work without one.</p>
@@ -203,7 +177,6 @@ export function GroupsHome() {
           <GroupListItem key={group.id} group={group} onStar={(row) => void toggleStar(row)} />
         ))}
       </ul>
-    </AppShell>
+    </>
   );
 }
-

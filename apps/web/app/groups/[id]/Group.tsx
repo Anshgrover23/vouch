@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, use, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { BrandMark } from "@/components/Brand";
+import { activityCopy } from "@/lib/activity-copy";
 import { formatMoney, parseDisplayName } from "@/lib/split";
 import { moneyLabel, nameKey } from "@/lib/ledger";
 import styles from "../groups.module.css";
@@ -256,18 +257,11 @@ export const GroupShell = {
   Body: GroupShellBody,
 };
 
-export function GroupChrome({
-  accountName,
-  children,
-}: {
-  accountName: string;
-  children: ReactNode;
-}) {
+export function GroupChrome({ children }: { children: ReactNode }) {
   const {
     state: { groupId, name, error, loading },
   } = useGroup();
   const [copied, setCopied] = useState(false);
-  const chip = accountName.trim() || "Account";
 
   async function share() {
     const url = `${window.location.origin}/groups/${groupId}`;
@@ -289,7 +283,7 @@ export function GroupChrome({
           </Link>
           <div className={styles.shellActions}>
             <Link href="/account" className={styles.accountChip} data-testid="nav-account">
-              {chip}
+              Account
             </Link>
             <Link className="btn btn-primary" href={`/new?group=${groupId}`} data-testid="group-new-receipt">
               New receipt
@@ -450,18 +444,6 @@ export function GroupTotals() {
       <p className={styles.hint}>Group spending excludes settlements.</p>
     </section>
   );
-}
-
-function activityCopy(row: GroupActivity) {
-  const detail = row.detail ?? {};
-  if (row.action === "receipt") return `${row.actorName} added a receipt`;
-  if (row.action === "claimed") return `${row.actorName} vouched a line`;
-  if (row.action === "settled") {
-    return `${row.actorName} marked ${String(detail.from ?? "")} → ${String(detail.to ?? "")} settled`;
-  }
-  if (row.action === "invited") return `${row.actorName} added ${String(detail.name ?? "someone")}`;
-  if (row.action === "group_updated") return `${row.actorName} updated the group`;
-  return `${row.actorName} ${row.action}`;
 }
 
 export function GroupActivity() {

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import {
   DEFAULT_TEMPLATES,
   documents,
@@ -115,27 +115,41 @@ export async function loadWorkspaceMembership(database: QueryDb, userId: string)
   return row ?? null;
 }
 
+async function groupByWorkspaceName(database: QueryDb, workspaceId: string, name: string) {
+  const [row] = await database
+    .select()
+    .from(groups)
+    .where(and(eq(groups.workspaceId, workspaceId), sql`lower(btrim(${groups.name})) = ${name.toLowerCase()}`))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function createGroupWithOwner(
   database: QueryDb,
   input: { workspaceId: string; userId: string; displayName: string; name: string },
 ) {
   const name = parseGroupName(input.name);
   if (!name) return null;
-  const [group] = await database
-    .insert(groups)
-    .values({
-      workspaceId: input.workspaceId,
-      name,
-      createdBy: input.userId,
-    })
-    .returning();
-  await database.insert(groupMembers).values({
-    groupId: group.id,
-    userId: input.userId,
-    displayName: input.displayName,
-    status: "joined",
-  });
-  return group;
+  try {
+    const [group] = await database
+      .insert(groups)
+      .values({
+        workspaceId: input.workspaceId,
+        name,
+        createdBy: input.userId,
+      })
+      .returning();
+    await database.insert(groupMembers).values({
+      groupId: group.id,
+      userId: input.userId,
+      displayName: input.displayName,
+      status: "joined",
+    });
+    return group;
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    return groupByWorkspaceName(database, input.workspaceId, name);
+  }
 }
 
 export async function groupInWorkspace(database: QueryDb, groupId: string, workspaceId: string) {

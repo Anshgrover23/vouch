@@ -16,6 +16,23 @@ test.describe("groups hub and typed receipt", () => {
     await skipOnboarding(page);
   });
 
+  test("creating the same group name twice keeps a single row", async ({ page }) => {
+    await page.goto("/groups");
+    await expect(page.getByTestId("group-name")).toBeVisible();
+    await page.getByTestId("group-name").fill("DS-168");
+    await page.getByTestId("groups-create").click();
+    await page.waitForURL(/\/groups\/.+/);
+    const firstId = page.url();
+    await page.goto("/groups");
+    await page.getByTestId("group-name").fill("DS-168");
+    await page.getByTestId("groups-create").click();
+    await page.waitForURL(/\/groups\/.+/);
+    expect(page.url()).toBe(firstId);
+    await page.goto("/groups");
+    await expect(page.getByTestId("groups-list").locator("li")).toHaveCount(1);
+    await expect(page.getByTestId("groups-list")).toContainText("DS-168");
+  });
+
   test("skip onboarding still lets you create a group later", async ({ page }) => {
     await page.goto("/new");
     await page.getByTestId("nav-groups").click();
@@ -27,7 +44,7 @@ test.describe("groups hub and typed receipt", () => {
     await expect(page.getByTestId("group-back")).toBeVisible();
     await expect(page.getByTestId("group-new-receipt")).toBeVisible();
     await expect(page.getByRole("link", { name: "New receipt" })).toHaveCount(1);
-    await expect(page.getByTestId("nav-account")).toHaveText("Ansh");
+    await expect(page.getByTestId("nav-account")).toHaveText("Account");
     await page.getByTestId("group-tab-settings").click();
     await page.getByTestId("group-add-member").fill("Goru");
     await page.getByRole("button", { name: "Add" }).click();

@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { after } from "next/server";
-import { documentPages, documents, fields, groups, jobs, splitClaims, templates } from "@proofsheet/db";
+import { documentPages, documents, fields, groups, jobs, templates } from "@proofsheet/db";
 import { SAMPLE_PAYMENT_PATH, SAMPLE_RECEIPT_PATH, templates as templateMeta } from "@proofsheet/interfaze";
 import { groupInWorkspace } from "@/lib/account";
 import { requireSession } from "@/lib/auth";
@@ -16,75 +16,16 @@ import { manualFieldRows, sanitizeManualReceipt } from "@/lib/manual-receipt";
 import { parseGroupId } from "@/lib/paths";
 import { resizeReceipt, storageConfigured, uploadReceipt } from "@/lib/receipt-storage";
 import { syncRemainderField } from "@/lib/remainder";
-import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouchedCount } from "@/lib/split";
+import { listWorkspaceSplits } from "@/lib/splits-list";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
-const LIST_FIELD_KEYS = ["merchant", "recipient", "date", "total", "amount"];
-
 export async function GET() {
   try {
     const session = await requireSession();
-    const rows = await db()
-      .select({
-        id: documents.id,
-        status: documents.status,
-        createdAt: documents.createdAt,
-        error: documents.error,
-        title: documents.title,
-      })
-      .from(documents)
-      .where(eq(documents.workspaceId, session.workspaceId))
-      .orderBy(desc(documents.createdAt));
-    const ids = rows.map((row) => row.id);
-    const [fieldRows, claimRows] = ids.length
-      ? await Promise.all([
-          db()
-            .select({
-              documentId: fields.documentId,
-              key: fields.key,
-              label: fields.label,
-              modelValue: fields.modelValue,
-              humanValue: fields.humanValue,
-            })
-            .from(fields)
-            .where(and(inArray(fields.documentId, ids), inArray(fields.key, LIST_FIELD_KEYS))),
-          db()
-            .select({ documentId: splitClaims.documentId, displayName: splitClaims.displayName })
-            .from(splitClaims)
-            .where(inArray(splitClaims.documentId, ids)),
-        ])
-      : [[], []];
-
-    const fieldsByDoc = new Map<string, typeof fieldRows>();
-    for (const field of fieldRows) {
-      const list = fieldsByDoc.get(field.documentId) ?? [];
-      list.push(field);
-      fieldsByDoc.set(field.documentId, list);
-    }
-    const claimsByDoc = new Map<string, { displayName: string }[]>();
-    for (const claim of claimRows) {
-      const list = claimsByDoc.get(claim.documentId) ?? [];
-      list.push(claim);
-      claimsByDoc.set(claim.documentId, list);
-    }
-
     return Response.json({
-      documents: rows.map((doc) => {
-        const docFields = fieldsByDoc.get(doc.id) ?? [];
-        const docClaims = claimsByDoc.get(doc.id) ?? [];
-        return {
-          id: doc.id,
-          status: doc.status,
-          createdAt: doc.createdAt,
-          error: doc.error,
-          merchant: receiptHeadline(docFields, prettyTitle(doc.title)),
-          date: shortDate(fieldValue(docFields, "date")),
-          total: formatMoney(fieldValue(docFields, "total") || fieldValue(docFields, "amount")),
-          people: vouchedCount(docClaims),
-        };
-      }),
+      documents: await listWorkspaceSplits(db(), session.workspaceId),
       mode: providerMode(),
     });
   } catch (error) {

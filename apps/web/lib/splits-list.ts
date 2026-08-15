@@ -1,0 +1,77 @@
+import { and, desc, eq, inArray } from "drizzle-orm";
+import { documents, fields, splitClaims, type Database } from "@proofsheet/db";
+import { fieldValue, formatMoney, prettyTitle, receiptHeadline, shortDate, vouchedCount } from "./split";
+
+const LIST_FIELD_KEYS = ["merchant", "recipient", "date", "total", "amount"];
+
+export type WorkspaceSplitRow = {
+  id: string;
+  status: string;
+  createdAt: Date;
+  error: string | null;
+  merchant: string;
+  date: string;
+  total: string;
+  people: number;
+};
+
+export async function listWorkspaceSplits(database: Database, workspaceId: string): Promise<WorkspaceSplitRow[]> {
+  const rows = await database
+    .select({
+      id: documents.id,
+      status: documents.status,
+      createdAt: documents.createdAt,
+      error: documents.error,
+      title: documents.title,
+    })
+    .from(documents)
+    .where(eq(documents.workspaceId, workspaceId))
+    .orderBy(desc(documents.createdAt));
+  const ids = rows.map((row) => row.id);
+  const [fieldRows, claimRows] = ids.length
+    ? await Promise.all([
+        database
+          .select({
+            documentId: fields.documentId,
+            key: fields.key,
+            label: fields.label,
+            modelValue: fields.modelValue,
+            humanValue: fields.humanValue,
+          })
+          .from(fields)
+          .where(and(inArray(fields.documentId, ids), inArray(fields.key, LIST_FIELD_KEYS))),
+        database
+          .select({ documentId: splitClaims.documentId, displayName: splitClaims.displayName })
+          .from(splitClaims)
+          .where(inArray(splitClaims.documentId, ids)),
+      ])
+    : [[], []];
+
+  const fieldsByDoc = new Map<string, typeof fieldRows>();
+  for (const field of fieldRows) {
+    const list = fieldsByDoc.get(field.documentId) ?? [];
+    list.push(field);
+    fieldsByDoc.set(field.documentId, list);
+  }
+  const claimsByDoc = new Map<string, { displayName: string }[]>();
+  for (const claim of claimRows) {
+    const list = claimsByDoc.get(claim.documentId) ?? [];
+    list.push(claim);
+    claimsByDoc.set(claim.documentId, list);
+  }
+
+  return rows.map((doc) => {
+    const docFields = fieldsByDoc.get(doc.id) ?? [];
+    const docClaims = claimsByDoc.get(doc.id) ?? [];
+    return {
+      id: doc.id,
+      status: doc.status,
+      createdAt: doc.createdAt,
+      error: doc.error,
+      merchant: receiptHeadline(docFields, prettyTitle(doc.title)),
+      date: shortDate(fieldValue(docFields, "date")),
+      total: formatMoney(fieldValue(docFields, "total") || fieldValue(docFields, "amount")),
+      people: vouchedCount(docClaims),
+    };
+  });
+}

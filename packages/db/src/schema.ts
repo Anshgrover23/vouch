@@ -60,6 +60,7 @@ export const groups = pgTable("groups", {
 }, (t) => [
   index("groups_workspace_idx").on(t.workspaceId),
   index("groups_created_by_idx").on(t.createdBy),
+  uniqueIndex("groups_workspace_name_idx").on(t.workspaceId, sql`lower(btrim(${t.name}))`),
 ]);
 
 export const groupMembers = pgTable("group_members", {

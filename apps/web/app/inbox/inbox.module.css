@@ -7,6 +7,45 @@
   gap: 12px;
 }
 
+.item {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 88px;
+}
+
+.skelCard {
+  display: grid;
+  gap: 10px;
+  padding: 18px 16px;
+  background: var(--color-paper-2);
+  border: 3px solid var(--color-ink);
+  box-shadow: var(--shadow-hard-sm);
+  min-height: 72px;
+}
+
+.skelLine {
+  display: block;
+  height: 14px;
+  width: min(48%, 220px);
+  background: var(--color-paper);
+  border: 2px solid var(--color-ink);
+  animation: skel 1.1s ease-in-out infinite;
+}
+
+.skelLineShort {
+  width: min(22%, 96px);
+  height: 10px;
+}
+
+@keyframes skel {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 .card {
   display: flex;
   justify-content: space-between;
@@ -109,5 +148,19 @@
 
   .empty :global(.btn) {
     width: 100%;
+  }
+
+  .skelCard {
+    min-height: 64px;
+    padding: 14px 12px;
+  }
+
+  .skelLine {
+    width: 62%;
+    height: 12px;
+  }
+
+  .skelLineShort {
+    width: 34%;
   }
 }

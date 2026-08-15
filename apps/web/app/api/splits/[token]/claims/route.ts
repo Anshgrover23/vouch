@@ -63,7 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       documentId: doc.id,
       actorName: displayName,
       action: "claimed",
-      detail: { fieldId: field.id, stance },
+      detail: { fieldId: field.id, stance, item: field.label },
     });
     return Response.json({ claim, claims: all });
   } catch (error) {

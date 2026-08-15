@@ -21,8 +21,7 @@ test.describe("inbox splits", () => {
     await signupViaApi(page, { name: "Ansh", email: uniqueEmail("inbox-list") });
     await skipOnboarding(page);
     await createGroceryReceipt(page);
-    await page.goto("/groups");
-    await page.getByTestId("nav-splits").click();
+    await page.goto("/inbox");
     await page.waitForURL(/\/inbox/);
     await expect(page.getByTestId("inbox-list")).toContainText(/Hillcrest/i);
     await page.getByTestId("inbox-card").click();
