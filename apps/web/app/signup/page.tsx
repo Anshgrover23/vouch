@@ -21,7 +21,7 @@ export default async function SignupPage({
       <main className={styles.page}>
         <p className="mono">new here</p>
         <h1>Sign up to vouch.</h1>
-        <p className={styles.lede}>Housemates tap the lines they owe. Your name is what they see on the receipt.</p>
+        <p className={styles.lede}>Friends tap the lines they owe. Your name is what they see on the receipt.</p>
         <SignupForm next={dest} invite={invite?.trim() || null} />
         <p className={styles.switch}>
           Already have an account? <Link href={`/login?next=${encodeURIComponent(dest)}`}>Log in</Link>

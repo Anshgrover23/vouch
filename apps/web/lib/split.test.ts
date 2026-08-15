@@ -10,9 +10,11 @@ import {
 import {
   assignedTotal,
   computedReceiptTotal,
+  formatMoney,
   isClaimableKey,
   isMoneyEditKey,
   lineShare,
+  moneyInputText,
   partitionReceiptFields,
   personShares,
   remainderGap,
@@ -195,6 +197,17 @@ describe("computedReceiptTotal", () => {
       field({ key: "recipient", label: "To", modelValue: "Jordan" }),
     ];
     assert.equal(computedReceiptTotal(fields), null);
+  });
+});
+
+describe("formatMoney", () => {
+  it("does not prefix a second dollar sign when OCR already attached $", () => {
+    assert.equal(formatMoney("$92.77"), "$92.77");
+    assert.equal(formatMoney("$$92.7"), "$92.70");
+    assert.equal(formatMoney("92.77"), "$92.77");
+    assert.equal(moneyInputText("$92.77"), "92.77");
+    assert.equal(moneyInputText("$$92.7"), "92.7");
+    assert.equal(moneyInputText("92.77"), "92.77");
   });
 });
 

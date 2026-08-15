@@ -26,6 +26,6 @@ test.describe("inbox splits", () => {
     await expect(page.getByTestId("inbox-list")).toContainText(/Hillcrest/i);
     await page.getByTestId("inbox-card").click();
     await page.waitForURL(/\/review\//);
-    await expect(page.getByTestId("identity-bar")).toBeVisible();
+    await expect(page.getByTestId("paid-by-bar")).toBeVisible();
   });
 });

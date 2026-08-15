@@ -86,7 +86,7 @@ export function AccountForm({
               {nameError}
             </p>
           ) : null}
-          {saved ? <p className={styles.ok}>Name saved. It is what housemates see on splits.</p> : null}
+          {saved ? <p className={styles.ok}>Name saved. It is what friends see on splits.</p> : null}
           <label>
             <span className="mono">display name</span>
             <input data-testid="account-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={48} />

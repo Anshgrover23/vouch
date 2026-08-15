@@ -4,7 +4,6 @@
  */
 import { expect, test } from "@playwright/test";
 import {
-  confirmIdentity,
   createGroceryReceipt,
   dismissInvite,
   openReview,
@@ -40,13 +39,11 @@ test.describe("join link and two browsers", () => {
 
     const { id, shareToken } = await createGroceryReceipt(ansh);
     await openReview(ansh, id);
-    await confirmIdentity(ansh, "Ansh");
     await ansh.getByTestId("owe-item_3").click();
     await expect(ansh.getByTestId("person-total-ansh")).toHaveText("$5.29");
 
     await goru.goto(`/s/${shareToken}`);
-    await expect(goru.getByTestId("identity-bar")).toBeVisible();
-    await confirmIdentity(goru, "Goru");
+    await expect(goru.getByTestId("owe-item_6")).toBeVisible();
     await goru.getByTestId("owe-item_6").click();
     await expect(goru.getByTestId("person-goru")).toBeVisible();
     await goru.getByTestId("split-item_3").click();
@@ -65,11 +62,7 @@ test.describe("join link and two browsers", () => {
       })
       .toBe("$2.65");
     await expect(ansh.getByTestId("person-goru")).toBeVisible();
-
-    await confirmIdentity(ansh, "Ansh-grover");
-    await expect(ansh.getByTestId("person-ansh-grover")).toBeVisible();
-    await expect(ansh.getByTestId("person-goru")).toBeVisible();
-    await expect(ansh.getByTestId("person-ansh")).toHaveCount(0);
+    await expect(ansh.getByTestId("person-ansh")).toBeVisible();
 
     await anshContext.close();
     await goruContext.close();
@@ -83,12 +76,10 @@ test.describe("join link and two browsers", () => {
 
     const { id, shareToken } = await createGroceryReceipt(ansh);
     await openReview(ansh, id);
-    await confirmIdentity(ansh, "Ansh");
     await ansh.getByTestId("split-item_3").click();
     await expect(ansh.getByTestId("person-total-ansh")).toHaveText("$5.29");
 
     await goru.goto(`/s/${shareToken}`);
-    await confirmIdentity(goru, "Goru");
     await goru.getByTestId("split-item_3").click();
     await expect(goru.getByTestId("line-item_3")).toContainText("$2.65 each");
     await expect(goru.getByTestId("person-total-ansh")).toHaveText("$2.65");

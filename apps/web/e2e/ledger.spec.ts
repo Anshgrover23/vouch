@@ -1,10 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
   addGroupMember,
-  confirmIdentity,
   createGroceryReceipt,
   createGroup,
-  dismissInvite,
   openReview,
   readyContext,
   skipOnboarding,
@@ -48,13 +46,11 @@ test.describe("group ledger", () => {
     await expect(ansh.getByRole("heading", { name: "412 Oak house" })).toBeVisible();
 
     await openReview(ansh, id);
-    await confirmIdentity(ansh, "Ansh");
     await expect(ansh.getByTestId("paid-by")).toHaveValue("Ansh");
 
     const goru = await readyContext(goruContext, { name: "Goru", email: uniqueEmail("ledger-goru") });
     await goru.goto(`/s/${shareToken}`);
-    await expect(goru.getByTestId("identity-bar")).toBeVisible();
-    await confirmIdentity(goru, "Goru");
+    await expect(goru.getByTestId("owe-item_6")).toBeVisible();
     await goru.getByTestId("owe-item_6").click();
     await expect(goru.getByTestId("person-goru")).toBeVisible();
 

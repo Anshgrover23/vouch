@@ -79,7 +79,9 @@ export async function addGroupMember(page: Page, groupId: string, displayName: s
 
 export async function dismissInvite(page: Page) {
   const sheet = page.getByTestId("invite-sheet");
-  await expect(page.getByTestId("identity-bar").or(sheet).first()).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByTestId("paid-by-bar").or(page.getByTestId("review-lines")).or(sheet).first()).toBeVisible({
+    timeout: 45_000,
+  });
   await sheet.waitFor({ state: "visible", timeout: 8_000 }).catch(() => undefined);
   if (await sheet.isVisible()) {
     await page.getByTestId("invite-dismiss").click();
@@ -87,16 +89,10 @@ export async function dismissInvite(page: Page) {
   }
 }
 
-export async function confirmIdentity(page: Page, name: string) {
-  await page.getByTestId("identity-name").fill(name);
-  await page.getByTestId("identity-confirm").click();
-  await expect(page.getByTestId("identity-confirm")).toBeDisabled();
-}
-
 export async function openReview(page: Page, id: string) {
   await page.goto(`/review/${id}`);
   await dismissInvite(page);
-  await expect(page.getByTestId("identity-bar")).toBeVisible();
+  await expect(page.getByTestId("paid-by-bar")).toBeVisible();
 }
 
 export async function readyContext(context: BrowserContext, account: { name: string; email: string }) {

@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, use, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, use, useMemo, useState, type ReactNode } from "react";
 import {
   computedReceiptTotal,
   formatMoney,
+  moneyInputText,
   isClaimableKey,
   isItemRowKey,
   isMoneyEditKey,
@@ -44,7 +45,6 @@ type ReviewState = {
   drafts: Record<string, string>;
   labels: Record<string, string>;
   saving: string | null;
-  namePromptId: string | null;
 };
 
 type ReviewActions = {
@@ -55,7 +55,6 @@ type ReviewActions = {
   saveLabel: ((id: string) => Promise<void>) | null;
   claim: ((id: string, stance: ClaimStance) => Promise<void>) | null;
   remove: ((id: string) => Promise<void>) | null;
-  promptName: (id: string) => void;
 };
 
 type ReviewMeta = {
@@ -65,7 +64,6 @@ type ReviewMeta = {
   compact: boolean;
   claims: SplitClaim[];
   displayName: string | null;
-  nameInputRef: RefObject<HTMLInputElement | null>;
 };
 
 type ReviewContextValue = {
@@ -111,12 +109,10 @@ function Root({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [labels, setLabels] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
-  const [namePromptId, setNamePromptId] = useState<string | null>(null);
-  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const value = useMemo<ReviewContextValue>(
     () => ({
-      state: { active, drafts, labels, saving, namePromptId: displayName ? null : namePromptId },
+      state: { active, drafts, labels, saving },
       actions: {
         setActive,
         setDraft: (id, next) => setDrafts((d) => ({ ...d, [id]: next })),
@@ -139,16 +135,10 @@ function Root({
           : null,
         claim: onClaim ?? null,
         remove: onRemoveField ?? null,
-        promptName: (id) => {
-          setNamePromptId(id);
-          const node =
-            nameInputRef.current ?? document.querySelector<HTMLInputElement>('[data-testid="identity-name"]');
-          node?.focus();
-        },
       },
-      meta: { page, fields, threshold, compact, claims, displayName, nameInputRef },
+      meta: { page, fields, threshold, compact, claims, displayName },
     }),
-    [active, drafts, labels, saving, namePromptId, page, fields, threshold, compact, claims, displayName, onSaveField, onRenameField, onRemoveField, onClaim],
+    [active, drafts, labels, saving, page, fields, threshold, compact, claims, displayName, onSaveField, onRenameField, onRemoveField, onClaim],
   );
 
   return (
@@ -160,58 +150,6 @@ function Root({
 
 function Pane({ children }: { children: ReactNode }) {
   return <div className={styles.pane}>{children}</div>;
-}
-
-function Identity({
-  name,
-  onNameChange,
-  onConfirm,
-}: {
-  name: string;
-  onNameChange: (value: string) => void;
-  onConfirm: () => void;
-}) {
-  const {
-    state: { namePromptId },
-    meta: { displayName, nameInputRef },
-  } = useReview();
-  const ready = Boolean(displayName);
-  const draft = name.trim();
-  const pending = Boolean(ready && draft && draft !== displayName);
-  const needName = Boolean(namePromptId) && !ready;
-
-  return (
-    <div className={needName ? `${styles.identity} ${styles.identityNeed}` : styles.identity} data-testid="identity-bar">
-      <label className={styles.identityField}>
-        <span className="mono">you&apos;re splitting as</span>
-        <input
-          ref={nameInputRef}
-          data-testid="identity-name"
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          placeholder="Ram"
-          maxLength={48}
-          aria-invalid={needName}
-        />
-      </label>
-      <button
-        className="btn btn-primary"
-        type="button"
-        data-testid="identity-confirm"
-        onClick={onConfirm}
-        disabled={!draft || draft === (displayName ?? "")}
-      >
-        That&apos;s me
-      </button>
-      {ready ? (
-        pending ? <p className={styles.hint}>Tap That&apos;s me to rename. Your lines move with you.</p> : null
-      ) : (
-        <p className={needName ? `${styles.hint} ${styles.hintNeed}` : styles.hint}>
-          {needName ? "Add your name first" : "Add your name to vouch."}
-        </p>
-      )}
-    </div>
-  );
 }
 
 function PaidBy({
@@ -330,19 +268,10 @@ function rawValue(field: CanvasField, drafts: Record<string, string>) {
 
 function useClaimLine() {
   const {
-    actions: { claim, promptName },
-    meta: { displayName, nameInputRef },
+    actions: { claim },
   } = useReview();
 
   return (id: string, stance: ClaimStance) => {
-    if (!displayName) {
-      const node =
-        nameInputRef.current ?? document.querySelector<HTMLInputElement>('[data-testid="identity-name"]');
-      if (node) {
-        promptName(id);
-        return;
-      }
-    }
     void claim?.(id, stance);
   };
 }
@@ -404,10 +333,8 @@ function LineNote({
   canClaim: boolean;
 }) {
   const {
-    state: { namePromptId },
     meta: { displayName },
   } = useReview();
-  const askName = namePromptId === field.id;
   if (share) {
     return (
       <p className={styles.hint}>
@@ -418,11 +345,7 @@ function LineNote({
     );
   }
   if (canClaim && !displayName) {
-    return (
-      <p className={askName ? `${styles.hint} ${styles.hintNeed}` : styles.hint}>
-        {askName ? "Add your name first" : "Add your name to vouch."}
-      </p>
-    );
+    return <p className={styles.hint}>Log in to vouch this line.</p>;
   }
   if (field.key === "remainder") {
     return <p className={styles.hint}>Left after the lines above, so the split can reach the receipt total.</p>;
@@ -447,7 +370,8 @@ function PriceField({
     actions: { setActive, setDraft, save },
   } = useReview();
 
-  const digits = (value || "0.00").replace(/[^\d.]/g, "") || "0.00";
+  const digits = moneyInputText(value || "0.00").replace(/[^\d.]/g, "") || "0.00";
+  const display = moneyInputText(value);
 
   return (
     <label className={styles.money}>
@@ -457,12 +381,12 @@ function PriceField({
       <input
         className={styles.price}
         data-testid={`line-amount-${field.key}`}
-        value={value}
+        value={display}
         style={{ width: `${Math.max(1, digits.length)}ch` }}
-        onChange={(e) => setDraft(field.id, e.target.value)}
+        onChange={(e) => setDraft(field.id, moneyInputText(e.target.value))}
         onFocus={() => setActive(field.id)}
         onBlur={() => {
-          if (value !== original) void save(field.id);
+          if (moneyInputText(value) !== moneyInputText(original)) void save(field.id);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter") e.currentTarget.blur();
@@ -484,7 +408,7 @@ function PriceField({
 }
 
 function ReadOnlyMoney({ field, value }: { field: CanvasField; value: string }) {
-  const amount = value.replace(/^[^\d-]*/, "").replace(/[^0-9.]/g, "") || value;
+  const amount = moneyInputText(value).replace(/[^0-9.]/g, "") || moneyInputText(value);
   return (
     <span className={styles.money} data-testid={`line-value-${field.key}`}>
       <span className={styles.currency} aria-hidden>
@@ -757,7 +681,6 @@ export const Review = {
   Audio,
   Fields,
   Pane,
-  Identity,
   PaidBy,
 };
 
@@ -770,9 +693,6 @@ export function ReviewCanvas({
   compact,
   claims,
   displayName,
-  name,
-  onNameChange,
-  onConfirmName,
   onSaveField,
   onRenameField,
   onRemoveField,
@@ -789,9 +709,6 @@ export function ReviewCanvas({
   compact?: boolean;
   claims?: SplitClaim[];
   displayName?: string | null;
-  name?: string;
-  onNameChange?: (value: string) => void;
-  onConfirmName?: () => void;
   onSaveField?: (id: string, value: string) => Promise<void>;
   onRenameField?: (id: string, label: string) => Promise<void>;
   onRemoveField?: (id: string) => Promise<void>;
@@ -815,9 +732,6 @@ export function ReviewCanvas({
     >
       {audio ? <Review.Audio /> : <Review.Source />}
       <Review.Pane>
-        {onNameChange && onConfirmName ? (
-          <Review.Identity name={name ?? ""} onNameChange={onNameChange} onConfirm={onConfirmName} />
-        ) : null}
         {onPaidByChange ? (
           <Review.PaidBy paidByName={paidByName ?? ""} people={people ?? []} onChange={onPaidByChange} />
         ) : null}

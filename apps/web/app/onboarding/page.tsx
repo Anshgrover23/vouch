@@ -88,7 +88,7 @@ export default function OnboardingPage() {
         >
           <p className="mono">name the house</p>
           <h2>What should we call this group?</h2>
-          <p>Invite housemates later. You do not have to add anyone now.</p>
+          <p>Invite friends later. You do not have to add anyone now.</p>
           <label>
             <span className="mono">group name</span>
             <input

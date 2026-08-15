@@ -5,7 +5,6 @@ import Link from "next/link";
 import { BrandMark } from "@/components/Brand";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
 import { SplitBoard } from "@/components/SplitBoard";
-import { NAME_KEY, commitSplitName } from "@/lib/identity";
 import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type ClaimStance, type SplitClaim } from "@/lib/split";
 import styles from "./split.module.css";
 
@@ -17,14 +16,7 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
   const [claims, setClaims] = useState<SplitClaim[]>([]);
   const [page, setPage] = useState<CanvasPage | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [confirmed, setConfirmed] = useState<string | null>(null);
-
-  useEffect(() => {
-    const stored = parseDisplayName(window.localStorage.getItem(NAME_KEY));
-    const account = parseDisplayName(viewer?.displayName);
-    setName(stored || account || "");
-  }, [viewer]);
+  const displayName = parseDisplayName(viewer?.displayName);
 
   async function load(share: string) {
     const res = await fetch(`/api/splits/${share}`);
@@ -97,21 +89,6 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
     await load(token);
   }
 
-  async function confirmName() {
-    const next = parseDisplayName(name);
-    if (!next) return;
-    const result = await commitSplitName(token, confirmed, next);
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-    window.localStorage.setItem(NAME_KEY, result.name);
-    setName(result.name);
-    setConfirmed(result.name);
-    setError(null);
-    await load(token);
-  }
-
   const next = `/s/${token}`;
 
   return (
@@ -156,10 +133,7 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
               page={page}
               fields={fields}
               claims={claims}
-              displayName={viewer ? confirmed : null}
-              name={name}
-              onNameChange={viewer ? setName : undefined}
-              onConfirmName={viewer ? () => void confirmName() : undefined}
+              displayName={displayName}
               readOnly={!viewer}
               onSaveField={viewer ? saveField : undefined}
               onClaim={claimLine}

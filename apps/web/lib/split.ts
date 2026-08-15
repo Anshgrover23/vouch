@@ -42,8 +42,14 @@ export function formatMoney(value: string | number | null) {
   if (value == null || value === "") return "";
   if (typeof value === "number") return `$${value.toFixed(2)}`;
   const n = parseMoney(value);
-  if (n == null) return value;
+  if (n == null) return value.replace(/^\$+\s*/, "");
   return `$${n.toFixed(2)}`;
+}
+
+export function moneyInputText(value: string | number | null | undefined) {
+  if (value == null || value === "") return "";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
+  return String(value).trim().replace(/^\$+\s*/, "");
 }
 
 export function shortDate(raw: string) {

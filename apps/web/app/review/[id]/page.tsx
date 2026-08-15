@@ -6,7 +6,6 @@ import { AppShell } from "@/components/AppShell";
 import { Invite } from "@/components/InviteSheet";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
 import { SplitBoard } from "@/components/SplitBoard";
-import { NAME_KEY, commitSplitName } from "@/lib/identity";
 import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type ClaimStance, type SplitClaim } from "@/lib/split";
 import styles from "./review.module.css";
 
@@ -24,8 +23,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [error, setError] = useState<string | null>(null);
   const [shareToken, setShareToken] = useState("");
   const [copied, setCopied] = useState(false);
-  const [name, setName] = useState("");
-  const [confirmed, setConfirmed] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteSeen, setInviteSeen] = useState(false);
@@ -35,14 +33,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
 
   useEffect(() => {
     params.then((p) => setId(p.id));
-    const stored = parseDisplayName(window.localStorage.getItem(NAME_KEY));
-    if (stored) setName(stored);
     void fetch("/api/auth/me", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : { session: null }))
       .then((json: { session?: { displayName?: string } | null }) => {
         const account = parseDisplayName(json.session?.displayName);
-        if (!account) return;
-        setName((current) => current || account);
+        if (account) setDisplayName(account);
       })
       .catch(() => {});
   }, [params]);
@@ -161,15 +156,15 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   }
 
   async function claimLine(fieldId: string, stance: ClaimStance) {
-    const displayName = confirmed;
-    if (!displayName || !shareToken) {
-      setError("Add your name before you vouch a line.");
+    if (!shareToken) {
+      setError("This receipt is not ready to split yet.");
       return;
     }
     const res = await fetch(`/api/splits/${shareToken}/claims`, {
       method: "POST",
+      credentials: "include",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ displayName, fieldId, stance }),
+      body: JSON.stringify({ fieldId, stance }),
     });
     if (!res.ok) {
       setError("Could not save that claim.");
@@ -177,27 +172,6 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     }
     setError(null);
     await load(id);
-  }
-
-  async function confirmName() {
-    const next = parseDisplayName(name);
-    if (!next) return;
-    if (shareToken) {
-      const result = await commitSplitName(shareToken, confirmed, next);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      window.localStorage.setItem(NAME_KEY, result.name);
-      setName(result.name);
-      setConfirmed(result.name);
-      await load(id);
-    } else {
-      window.localStorage.setItem(NAME_KEY, next);
-      setName(next);
-      setConfirmed(next);
-    }
-    setError(null);
   }
 
   const dismissInvite = useCallback(() => {
@@ -288,12 +262,9 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 onSaveField={saveField}
                 onRenameField={renameField}
                 onRemoveField={removeField}
-                onClaim={claimLine}
+                onClaim={displayName ? claimLine : undefined}
                 claims={claims}
-                displayName={confirmed}
-                name={name}
-                onNameChange={setName}
-                onConfirmName={() => void confirmName()}
+                displayName={displayName}
                 paidByName={paidByName}
                 people={people}
                 onPaidByChange={(next) => void savePaidBy(next)}

@@ -67,18 +67,6 @@
   margin: 0;
 }
 
-.identityNudge input {
-  border-color: var(--color-warn);
-}
-
-.identityNudge .hint {
-  color: var(--color-warn);
-}
-
-.identityNeed .identityField input {
-  border-color: var(--color-warn);
-}
-
 .photo {
   background: var(--color-paper-3);
 }
@@ -395,10 +383,6 @@
   margin: 4px 0 0;
   color: var(--color-muted);
   font-size: var(--text-xs);
-}
-
-.hintNeed {
-  color: var(--color-warn);
 }
 
 .claims {

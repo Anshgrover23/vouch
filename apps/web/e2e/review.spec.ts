@@ -6,7 +6,6 @@
 import { expect, test } from "@playwright/test";
 import {
   addGroupMember,
-  confirmIdentity,
   createGroceryReceipt,
   createGroup,
   dismissInvite,
@@ -71,15 +70,11 @@ test.describe("review canvas (Hillcrest fixture)", () => {
     await expect(page.getByTestId("line-label-item_3")).toHaveCount(0);
   });
 
-  test("without a name, owe focuses identity; That's me unlocks the claim", async ({ page }) => {
+  test("signed-in owner can claim without a That's me step", async ({ page }) => {
     const { id } = await createGroceryReceipt(page);
     await openReview(page, id);
-    await page.getByTestId("identity-name").fill("");
-    await page.getByTestId("owe-item_3").click();
-    await expect(page.getByTestId("identity-name")).toBeFocused();
-    await expect(page.getByTestId("identity-bar").getByText("Add your name first")).toBeVisible();
-    await expect(page.getByTestId("line-item_3").getByText("Add your name first")).toBeVisible();
-    await confirmIdentity(page, "Ansh");
+    await expect(page.getByTestId("identity-bar")).toHaveCount(0);
+    await expect(page.getByTestId("paid-by-bar")).toBeVisible();
     await page.getByTestId("owe-item_3").click();
     await expect(page.getByTestId("person-total-ansh")).toHaveText("$5.29");
   });
@@ -87,7 +82,6 @@ test.describe("review canvas (Hillcrest fixture)", () => {
   test("Ansh claiming Oat milk is $5.29, not half", async ({ page }) => {
     const { id } = await createGroceryReceipt(page);
     await openReview(page, id);
-    await confirmIdentity(page, "Ansh");
     await page.getByTestId("owe-item_3").click();
     await expect(page.getByTestId("person-ansh")).toBeVisible();
     await expect(page.getByTestId("person-total-ansh")).toHaveText("$5.29");
@@ -102,23 +96,10 @@ test.describe("review canvas (Hillcrest fixture)", () => {
     await expect(page.getByTestId("still-open")).toBeVisible();
     await expect(page.getByTestId("still-open")).toContainText("Rest of the bill");
     await expect(page.getByTestId("still-open-total")).toBeVisible();
-    await confirmIdentity(page, "Ansh");
     await page.getByTestId("owe-item_3").click();
     await expect(page.getByTestId("still-open")).toContainText("Rest of the bill");
     await page.getByTestId("owe-remainder").click();
     await expect(page.getByTestId("still-open")).not.toContainText("Rest of the bill");
-  });
-
-  test("rename via identity does not mint a third person", async ({ page }) => {
-    const { id } = await createGroceryReceipt(page);
-    await openReview(page, id);
-    await confirmIdentity(page, "Ansh");
-    await page.getByTestId("owe-item_3").click();
-    await expect(page.getByTestId("person-ansh")).toBeVisible();
-    await confirmIdentity(page, "Ansh-grover");
-    await expect(page.getByTestId("person-ansh-grover")).toBeVisible();
-    await expect(page.getByTestId("person-total-ansh-grover")).toHaveText("$5.29");
-    await expect(page.getByTestId("person-ansh")).toHaveCount(0);
   });
 
   test("invite sheet is WhatsApp + copy link, dismissible, and stubs do not block claims", async ({ page }) => {
@@ -138,8 +119,7 @@ test.describe("review canvas (Hillcrest fixture)", () => {
     await page.getByTestId("invite-dismiss").click();
     await expect(sheet).toHaveCount(0);
     await expect(page.getByTestId("waiting-banner")).toContainText("Waiting for Goru");
-    await expect(page.getByTestId("identity-bar")).toBeVisible();
-    await confirmIdentity(page, "Ansh");
+    await expect(page.getByTestId("paid-by-bar")).toBeVisible();
     await expect(page.getByTestId("owe-item_3")).toBeEnabled();
     await page.getByTestId("owe-item_3").click();
     await expect(page.getByTestId("person-total-ansh")).toHaveText("$5.29");
@@ -148,7 +128,6 @@ test.describe("review canvas (Hillcrest fixture)", () => {
   test("Split equally with one person waits for the other to tap it too", async ({ page }) => {
     const { id } = await createGroceryReceipt(page);
     await openReview(page, id);
-    await confirmIdentity(page, "Ansh");
     await page.getByTestId("split-item_3").click();
     await expect(page.getByTestId("owe-item_3")).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("line-item_3")).toContainText("The other person taps Split equally");
@@ -158,13 +137,12 @@ test.describe("review canvas (Hillcrest fixture)", () => {
   test("Not mine marks the line without taking it", async ({ page }) => {
     const { id } = await createGroceryReceipt(page);
     await openReview(page, id);
-    await confirmIdentity(page, "Ansh");
     await page.getByTestId("not-mine-item_6").click();
     await expect(page.getByTestId("not-mine-item_6")).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("person-ansh")).toHaveCount(0);
   });
 
-  test("paid by can switch to a group housemate", async ({ page }) => {
+  test("paid by can switch to a group friend", async ({ page }) => {
     const group = await createGroup(page, "412 Oak");
     await addGroupMember(page, group.id, "Goru");
     const { id } = await createGroceryReceipt(page, group.id);

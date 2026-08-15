@@ -21,7 +21,7 @@ function when(iso: string) {
 }
 
 function peopleLabel(n: number) {
-  if (n === 0) return "Waiting on housemates";
+  if (n === 0) return "Waiting on friends";
   if (n === 1) return "1 person vouched";
   return `${n} people vouched`;
 }
@@ -43,7 +43,7 @@ export function SplitsHome({ initialDocs }: { initialDocs: SplitRow[] }) {
   return initialDocs.length === 0 ? (
     <div className={styles.empty} data-testid="inbox-empty">
       <h2>No receipts yet.</h2>
-      <p>Snap a grocery run or a Venmo screenshot. Housemates tap the lines they owe.</p>
+      <p>Snap a grocery run or a Venmo screenshot. Friends tap the lines they owe.</p>
       <Link className="btn btn-primary" href="/new" data-testid="inbox-new">
         New receipt
       </Link>
