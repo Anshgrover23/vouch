@@ -93,7 +93,7 @@ export async function processExtract(
     extracted = await provider.extract({
       sourceUrl: source,
       prompt: spec?.prompt ?? `Extract fields for template ${template.slug}`,
-      schema: template.jsonSchema as Record<string, unknown>,
+      schema: spec?.jsonSchema ?? (template.jsonSchema as Record<string, unknown>),
       schemaName: template.slug,
       modality: "image",
     });

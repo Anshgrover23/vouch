@@ -3,7 +3,6 @@ import { z } from "zod";
 export const groceryReceiptSchema = z.object({
   merchant: z.string().describe("Store or merchant name printed on the receipt"),
   date: z.string().describe("Purchase date on the receipt"),
-  total: z.string().describe("Grand total charged, including tax"),
   items: z
     .array(
       z.object({
@@ -11,7 +10,11 @@ export const groceryReceiptSchema = z.object({
         price: z.string().describe("Line item price"),
       }),
     )
-    .describe("Purchased line items only — skip tax, subtotal, payment rows, phone numbers, order numbers, cashier lines, and item/rate/qty table headers. Use the line price or subtotal, not quantity."),
+    .describe("Purchased goods only. Do not put subtotal, tax, tip, cash, or change in this array."),
+  subtotal: z.string().optional().describe("Subtotal before tax, if printed"),
+  tax: z.string().optional().describe("Tax amount, if printed"),
+  tip: z.string().optional().describe("Tip or gratuity, if printed"),
+  total: z.string().describe("Grand total charged, including tax"),
 });
 
 export const paymentScreenshotSchema = z.object({
@@ -23,55 +26,11 @@ export const paymentScreenshotSchema = z.object({
   note: z.string().describe("Memo or note on the payment"),
 });
 
-export const templates = {
-  "grocery-receipt": {
-    slug: "grocery-receipt",
-    name: "Grocery receipt",
-    modality: "image" as const,
-    schema: groceryReceiptSchema,
-    samplePath: "/samples/receipt.png",
-    prompt:
-      "Extract the merchant, date, grand total, and each purchased line item with its price from this grocery receipt. Skip tax, subtotal, payment rows, phone numbers, order numbers, cashier lines, and table headers. If a row has item number, rate, quantity, and subtotal, use the item name and the line price/subtotal only. If this is not a receipt or a field is unreadable, omit that field. Never output the word null.",
-  },
-  "payment-screenshot": {
-    slug: "payment-screenshot",
-    name: "Payment screenshot",
-    modality: "image" as const,
-    schema: paymentScreenshotSchema,
-    samplePath: "/samples/payment.png",
-    prompt:
-      "Extract sender, recipient, amount, date, status, and note from this payment confirmation. This is a payment screenshot, not an identity document. If a field is unreadable, omit it. Never output the word null.",
-  },
-};
-
-export type TemplateSlug = keyof typeof templates;
-
-export const fieldLabels: Record<string, string> = {
-  merchant: "Merchant",
-  date: "Date",
-  total: "Total",
-  sender: "From",
-  recipient: "To",
-  amount: "Amount",
-  status: "Status",
-  note: "Note",
-  remainder: "Rest of the bill",
-};
-
-export function isClaimableKey(key: string) {
-  return key === "amount" || key === "remainder" || /^item_\d+$/.test(key);
-}
-
-export function itemLabel(index: number, name: string) {
-  return name.trim() || `Item ${index}`;
-}
-
 export const groceryJsonSchema = {
   type: "object",
   properties: {
     merchant: { type: "string" },
     date: { type: "string" },
-    total: { type: "string" },
     items: {
       type: "array",
       items: {
@@ -83,6 +42,10 @@ export const groceryJsonSchema = {
         required: ["name", "price"],
       },
     },
+    subtotal: { type: "string" },
+    tax: { type: "string" },
+    tip: { type: "string" },
+    total: { type: "string" },
   },
   required: ["merchant", "date", "total", "items"],
 };
@@ -99,3 +62,51 @@ export const paymentJsonSchema = {
   },
   required: ["sender", "recipient", "amount", "date", "status"],
 };
+
+export const templates = {
+  "grocery-receipt": {
+    slug: "grocery-receipt",
+    name: "Grocery receipt",
+    modality: "image" as const,
+    schema: groceryReceiptSchema,
+    jsonSchema: groceryJsonSchema,
+    samplePath: "/samples/receipt.png",
+    prompt:
+      "Read this grocery receipt the way it is printed. Extract merchant, date, every purchased line item with its price, then subtotal if printed, tax if printed, tip if printed, and the grand total. Omit a field only when it is not on the paper. Do not put tax, subtotal, tip, cash tendered, or change into the items list. Skip phone numbers, order numbers, cashier lines, and table headers. Prices must be the dollar amount only — drop tax codes like T2. Never output the word null.",
+  },
+  "payment-screenshot": {
+    slug: "payment-screenshot",
+    name: "Payment screenshot",
+    modality: "image" as const,
+    schema: paymentScreenshotSchema,
+    jsonSchema: paymentJsonSchema,
+    samplePath: "/samples/payment.png",
+    prompt:
+      "Extract sender, recipient, amount, date, status, and note from this payment confirmation. This is a payment screenshot, not an identity document. If a field is unreadable, omit it. Never output the word null.",
+  },
+};
+
+export type TemplateSlug = keyof typeof templates;
+
+export const fieldLabels: Record<string, string> = {
+  merchant: "Merchant",
+  date: "Date",
+  subtotal: "Subtotal",
+  tax: "Tax",
+  tip: "Tip",
+  total: "Total",
+  sender: "From",
+  recipient: "To",
+  amount: "Amount",
+  status: "Status",
+  note: "Note",
+  remainder: "Rest of the bill",
+};
+
+export function isClaimableKey(key: string) {
+  return key === "amount" || key === "tax" || key === "tip" || key === "remainder" || /^item_\d+$/.test(key);
+}
+
+export function itemLabel(index: number, name: string) {
+  return name.trim() || `Item ${index}`;
+}

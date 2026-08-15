@@ -15,7 +15,6 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
       properties: {
         merchant: { type: "string" },
         date: { type: "string" },
-        total: { type: "string" },
         items: {
           type: "array",
           items: {
@@ -27,6 +26,10 @@ export const DEFAULT_TEMPLATES: DefaultTemplate[] = [
             required: ["name", "price"],
           },
         },
+        subtotal: { type: "string" },
+        tax: { type: "string" },
+        tip: { type: "string" },
+        total: { type: "string" },
       },
       required: ["merchant", "date", "total", "items"],
     },

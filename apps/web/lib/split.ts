@@ -92,11 +92,11 @@ export function lineShare(price: string, claims: SplitClaim[], fieldId: string) 
 }
 
 export function isClaimableKey(key: string) {
-  return key === "amount" || key === "remainder" || /^item_\d+$/.test(key);
+  return key === "amount" || key === "tax" || key === "tip" || key === "remainder" || /^item_\d+$/.test(key);
 }
 
 export function isMoneyEditKey(key: string) {
-  return key === "amount" || /^item_\d+$/.test(key);
+  return key === "amount" || key === "tax" || key === "tip" || /^item_\d+$/.test(key);
 }
 
 export function isReceiptTotalSourceKey(key: string) {
@@ -239,7 +239,10 @@ export function computedReceiptTotal(fields: Array<SplitField & { status?: strin
 export function remainderGap(fields: SplitField[]) {
   const total = parseMoney(fieldValue(fields, "total"));
   if (total == null) return null;
-  return roundMoney(total - lineItemsSum(fields));
+  const tax = parseMoney(fieldValue(fields, "tax")) ?? 0;
+  const tip = parseMoney(fieldValue(fields, "tip")) ?? 0;
+  const gap = roundMoney(total - lineItemsSum(fields) - tax - tip);
+  return Math.abs(gap) < 0.009 ? 0 : gap;
 }
 
 export function assignedTotal(fields: SplitField[], claims: SplitClaim[]) {

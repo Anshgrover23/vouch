@@ -36,12 +36,12 @@ Seed (`packages/db/src/seed.ts`) still inserts `demo@proofsheet.dev` with **no**
 
 1. `sharp` resizes to max edge 1800px, JPEG quality 85. Client may compress before POST; server is source of truth.
 2. Upload to Storage when `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set. Otherwise local disk, or a resized data URL on Vercel.
-3. One Interfaze `extract` call with a public HTTPS URL (or a small data URL locally). Logs: `[extract] interfaze <ms> bytes=…`. Typical live OCR is 15–40s; ingest is not.
-4. Nested `items[]` flatten to `item_N` + price. Literal `null` / `n/a` values are dropped.
+3. One Interfaze structured `extract` call with a public HTTPS URL (or a small data URL locally). Line items come from that response. OCR in `precontext` is only used to draw boxes. Logs: `[extract] interfaze …ms bytes=…`. Typical live extract is 15–40s; ingest is not.
+4. Nested `items[]` flatten to `item_N` + price. Subtotal, tax, and tip are stored when Interfaze returns them. Literal `null` / `n/a` values are dropped.
 5. Persist raw `precontext` JSONB. The canvas never re-calls Interfaze to draw boxes.
 6. Field status: `auto` if confidence ≥ workspace threshold (default `0.92`), else `needs_review`. Human edits never overwrite `model_value`. Empty OCR → compact fail card (try another photo / type it).
 7. Typed receipts skip Interfaze and land on the same review canvas.
-8. Ignored lines drop out of the split. Remainder / computed total stay in sync after edits (`apps/web/lib/remainder.ts`). `parseMoney` accepts empty or null field values.
+8. Ignored lines drop out of the split. Remainder is only the unnamed gap after items + tax + tip. `parseMoney` accepts empty or null field values.
 
 ## Splits and groups
 

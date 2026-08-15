@@ -25,7 +25,53 @@ describe("flattenExtracted", () => {
     });
     assert.deepEqual(
       rows.map((row) => `${row.key}:${row.value}`),
-      ["merchant:Hillcrest Market", "date:2026-08-13", "total:12.50", "item_1:4.00", "item_3:3.50"],
+      ["merchant:Hillcrest Market", "date:2026-08-13", "item_1:4.00", "item_3:3.50", "total:12.50"],
+    );
+  });
+
+  it("keeps Interfaze subtotal and tax as their own fields", () => {
+    const rows = flattenExtracted({
+      merchant: "CASHIERS FARMERS MARKET",
+      date: "07-23-2021",
+      items: [
+        { name: "PRODUCE", price: "$3.52" },
+        { name: "PRODUCE", price: "$2.96" },
+      ],
+      subtotal: "$6.48",
+      tax: "$0.13",
+      total: "$6.61",
+    });
+    assert.deepEqual(
+      rows.map((row) => `${row.key}:${row.value}`),
+      [
+        "merchant:CASHIERS FARMERS MARKET",
+        "date:07-23-2021",
+        "item_1:$3.52",
+        "item_2:$2.96",
+        "subtotal:$6.48",
+        "tax:$0.13",
+        "total:$6.61",
+      ],
+    );
+  });
+
+  it("strips POS tax codes from Interfaze prices", () => {
+    const rows = flattenExtracted({
+      merchant: "CASHIERS FARMERS MARKET",
+      total: "$6.61",
+      items: [
+        { name: "PRODUCE", price: "$3.52T2" },
+        { name: "PRODUCE", price: "$2.96T2" },
+      ],
+    });
+    assert.deepEqual(
+      rows.map((row) => `${row.key}:${row.label}:${row.value}`),
+      [
+        "merchant:Merchant:CASHIERS FARMERS MARKET",
+        "item_1:PRODUCE:$3.52",
+        "item_2:PRODUCE:$2.96",
+        "total:Total:$6.61",
+      ],
     );
   });
 });

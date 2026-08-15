@@ -59,8 +59,13 @@ describe("Hillcrest fixture", () => {
     assert.equal(isMoneyEditKey("total"), false);
     assert.equal(isMoneyEditKey("remainder"), false);
     assert.equal(isMoneyEditKey("item_3"), true);
+    assert.equal(isMoneyEditKey("tax"), true);
+    assert.equal(isMoneyEditKey("subtotal"), false);
     assert.equal(isClaimableKey("merchant"), false);
     assert.equal(isClaimableKey("item_3"), true);
+    assert.equal(isClaimableKey("tax"), true);
+    assert.equal(isClaimableKey("tip"), true);
+    assert.equal(isClaimableKey("subtotal"), false);
     assert.equal(isClaimableKey("remainder"), true);
     const mixed = [
       fields.find((row) => row.key === "item_8")!,
@@ -220,6 +225,30 @@ describe("remainderGap", () => {
     assert.equal(remainderGap(fields), 160);
     assert.equal(isClaimableKey("total"), false);
     assert.equal(isClaimableKey("remainder"), true);
+  });
+
+  it("does not treat printed tax as unnamed rest of the bill", () => {
+    const fields = [
+      field({ key: "item_1", label: "PRODUCE", modelValue: "3.52" }),
+      field({ key: "item_2", label: "PRODUCE", modelValue: "2.96" }),
+      field({ key: "subtotal", label: "Subtotal", modelValue: "6.48" }),
+      field({ key: "tax", label: "Tax", modelValue: "0.13" }),
+      field({ key: "total", label: "Total", modelValue: "6.61" }),
+    ];
+    assert.equal(remainderGap(fields), 0);
+    const { header, items, footer } = partitionReceiptFields(fields);
+    assert.deepEqual(
+      header.map((row) => row.key),
+      [],
+    );
+    assert.deepEqual(
+      items.map((row) => row.key),
+      ["item_1", "item_2"],
+    );
+    assert.deepEqual(
+      footer.map((row) => row.key),
+      ["subtotal", "tax", "total"],
+    );
   });
 });
 
