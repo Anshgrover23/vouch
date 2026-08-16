@@ -4,7 +4,10 @@ import { groceryFields } from "@proofsheet/interfaze";
 import {
   exportLineItemRows,
   exportReceiptRows,
+  filterBuckets,
+  groupAnalytics,
   groupTotals,
+  parseReceiptDate,
   personNets,
   receiptsCsv,
   suggestedReimbursements,
@@ -105,6 +108,126 @@ describe("groupTotals", () => {
     assert.equal(totals.groupSpending, 96.2);
     assert.equal(totals.youPaid, 84.2);
     assert.equal(totals.yourShare, 12);
+  });
+});
+
+describe("parseReceiptDate", () => {
+  it("reads month-first OCR dates and slash dates", () => {
+    assert.equal(parseReceiptDate("AUG 13 2026")?.toISOString().slice(0, 10), "2026-08-13");
+    assert.equal(parseReceiptDate("16/08/26")?.toISOString().slice(0, 10), "2026-08-16");
+    assert.equal(parseReceiptDate("11/24/2025")?.toISOString().slice(0, 10), "2025-11-24");
+    assert.equal(parseReceiptDate("23 Jul", "2026-08-01")?.toISOString().slice(0, 10), "2026-07-23");
+  });
+
+  it("falls back to createdAt when the printed date is junk", () => {
+    assert.equal(parseReceiptDate("soon", "2026-08-13T12:00:00.000Z")?.toISOString().slice(0, 10), "2026-08-13");
+  });
+});
+
+describe("groupAnalytics", () => {
+  it("ranks merchants, paid vs share, and ignores settlements", () => {
+    const receipts = [
+      hillcrest("Ansh", [{ fieldId: "item_6", displayName: "Goru", stance: "owe" }]),
+      {
+        paidByName: "Goru",
+        fields: [
+          field({ key: "merchant", label: "Merchant", modelValue: "Corner Deli" }),
+          field({ key: "date", label: "Date", modelValue: "16/08/26" }),
+          field({ key: "total", label: "Total", modelValue: "12.00" }),
+          field({ id: "item_1", key: "item_1", label: "Coffee", modelValue: "12.00" }),
+        ],
+        claims: [{ fieldId: "item_1", displayName: "Ansh", stance: "owe" }],
+      },
+    ];
+    const analytics = groupAnalytics(receipts, "Ansh");
+    assert.deepEqual(analytics.totals, { groupSpending: 96.2, youPaid: 84.2, yourShare: 12 });
+    assert.deepEqual(analytics.people, [
+      { name: "Ansh", paid: 84.2, share: 12 },
+      { name: "Goru", paid: 12, share: 8.91 },
+    ]);
+    assert.deepEqual(
+      analytics.merchants.map((row) => row.name),
+      ["HILLCREST MARKET", "Corner Deli"],
+    );
+    assert.equal(analytics.merchants[0].spending, 84.2);
+    assert.equal(analytics.merchants[0].receipts, 1);
+  });
+
+  it("buckets by week when receipts are close, and fills empty weeks", () => {
+    const receipts: LedgerReceipt[] = [
+      {
+        paidByName: "Ansh",
+        fields: [
+          field({ key: "merchant", label: "Merchant", modelValue: "Cafe" }),
+          field({ key: "date", label: "Date", modelValue: "03 Aug 2026" }),
+          field({ key: "total", label: "Total", modelValue: "10.00" }),
+        ],
+        claims: [],
+      },
+      {
+        paidByName: "Ansh",
+        fields: [
+          field({ key: "merchant", label: "Merchant", modelValue: "Cafe" }),
+          field({ key: "date", label: "Date", modelValue: "20 Aug 2026" }),
+          field({ key: "total", label: "Total", modelValue: "5.00" }),
+        ],
+        claims: [],
+      },
+    ];
+    const analytics = groupAnalytics(receipts, "Ansh");
+    assert.ok(analytics.buckets.length >= 3);
+    assert.equal(
+      analytics.buckets.reduce((sum, row) => sum + row.spending, 0),
+      15,
+    );
+    assert.ok(analytics.buckets.some((row) => row.spending === 0));
+  });
+
+  it("buckets by month when the span is 60 days or more", () => {
+    const receipts: LedgerReceipt[] = [
+      {
+        paidByName: "Ansh",
+        fields: [
+          field({ key: "merchant", label: "Merchant", modelValue: "Cafe" }),
+          field({ key: "date", label: "Date", modelValue: "13 Aug 2026" }),
+          field({ key: "total", label: "Total", modelValue: "10.00" }),
+        ],
+        claims: [],
+      },
+      {
+        paidByName: "Ansh",
+        fields: [
+          field({ key: "merchant", label: "Merchant", modelValue: "Cafe" }),
+          field({ key: "date", label: "Date", modelValue: "12 Oct 2026" }),
+          field({ key: "total", label: "Total", modelValue: "20.00" }),
+        ],
+        claims: [],
+      },
+    ];
+    const analytics = groupAnalytics(receipts, "Ansh");
+    assert.deepEqual(
+      analytics.buckets.map((row) => row.key),
+      ["2026-08", "2026-09", "2026-10"],
+    );
+    assert.equal(analytics.buckets[1].spending, 0);
+    assert.equal(analytics.buckets[2].spending, 20);
+  });
+
+  it("filters trend buckets without changing all-time totals", () => {
+    const buckets = [
+      { key: "2026-06", label: "Jun", spending: 1, youPaid: 1, yourShare: 0 },
+      { key: "2026-07", label: "Jul", spending: 2, youPaid: 2, yourShare: 0 },
+      { key: "2026-08", label: "Aug", spending: 3, youPaid: 3, yourShare: 0 },
+    ];
+    const now = new Date(Date.UTC(2026, 7, 16));
+    assert.deepEqual(
+      filterBuckets(buckets, "month", now).map((row) => row.key),
+      ["2026-08"],
+    );
+    assert.deepEqual(
+      filterBuckets(buckets, "3m", now).map((row) => row.key),
+      ["2026-06", "2026-07", "2026-08"],
+    );
   });
 });
 

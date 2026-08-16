@@ -28,7 +28,7 @@ test.describe("group ledger", () => {
     await expect(ansh.getByRole("link", { name: "New receipt" })).toHaveCount(1);
     await expect(ansh.getByTestId("group-tab-receipts")).toBeVisible();
     await expect(ansh.getByTestId("group-tab-balances")).toBeVisible();
-    await expect(ansh.getByTestId("group-tab-totals")).toBeVisible();
+    await expect(ansh.getByTestId("group-tab-analytics")).toBeVisible();
     await expect(ansh.getByTestId("group-tab-activity")).toBeVisible();
     await expect(ansh.getByTestId("group-tab-settings")).toBeVisible();
     await expect(ansh.getByTestId("receipts-list")).toContainText(/Hillcrest/i);
@@ -62,9 +62,15 @@ test.describe("group ledger", () => {
     await expect(ansh.getByTestId("suggested-empty")).toBeVisible();
     await expect(ansh.getByTestId("suggested-goru-ansh")).toHaveCount(0);
 
-    await ansh.getByTestId("group-tab-totals").click();
+    await ansh.getByTestId("group-tab-analytics").click();
     await expect(ansh.getByTestId("totals-spending")).toHaveText("$84.20");
     await expect(ansh.getByTestId("totals-you-paid")).toHaveText("$84.20");
+    await expect(ansh.getByTestId("analytics-trend")).toBeVisible();
+    await expect(ansh.getByTestId("analytics-merchants")).toContainText(/Hillcrest/i);
+
+    await ansh.goto(`/groups/${group.id}/totals`);
+    await expect(ansh).toHaveURL(new RegExp(`/groups/${group.id}/analytics`));
+    await expect(ansh.getByTestId("group-analytics")).toBeVisible();
 
     await ansh.getByTestId("group-tab-activity").click();
     await expect(ansh.getByTestId("activity-list")).toContainText(/settled/i);

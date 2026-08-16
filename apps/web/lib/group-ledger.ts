@@ -11,7 +11,7 @@ import {
   type Database,
 } from "@proofsheet/db";
 import {
-  groupTotals,
+  groupAnalytics,
   personNets,
   receiptsCsv,
   suggestedReimbursements,
@@ -70,6 +70,7 @@ export async function loadGroupLedger(
     id: doc.id,
     title: doc.title,
     paidByName: doc.paidByName,
+    createdAt: doc.createdAt,
     fields: (fieldsByDoc.get(doc.id) ?? []).map((row) => ({
       id: row.id,
       key: row.key,
@@ -93,7 +94,8 @@ export async function loadGroupLedger(
   const people = [...new Set(members.map((member) => member.displayName))].sort((a, b) => a.localeCompare(b));
   const balances = personNets(receipts, booked);
   const suggested = suggestedReimbursements(balances);
-  const totals = groupTotals(receipts, input.youName);
+  const analytics = groupAnalytics(receipts, input.youName);
+  const totals = analytics.totals;
 
   return {
     group: {
@@ -125,6 +127,7 @@ export async function loadGroupLedger(
     balances,
     suggested,
     totals,
+    analytics,
     currency: ledgerCurrency(receipts),
     settlements: settlementRows.map((row) => ({
       id: row.id,

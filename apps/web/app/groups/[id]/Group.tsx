@@ -6,7 +6,7 @@ import { createContext, use, useEffect, useState, type FormEvent, type ReactNode
 import { BrandMark } from "@/components/Brand";
 import { activityCopy } from "@/lib/activity-copy";
 import { formatMoney, parseDisplayName } from "@/lib/split";
-import { moneyLabel, nameKey } from "@/lib/ledger";
+import { emptyAnalytics, moneyLabel, nameKey, type LedgerAnalytics } from "@/lib/ledger";
 import styles from "../groups.module.css";
 
 export type GroupMember = {
@@ -26,7 +26,6 @@ export type GroupReceipt = {
 
 export type GroupBalance = { name: string; net: number };
 export type GroupSuggested = { from: string; to: string; amount: number };
-export type GroupTotals = { groupSpending: number; youPaid: number; yourShare: number };
 export type GroupActivity = {
   id: string;
   actorName: string;
@@ -43,7 +42,7 @@ type GroupState = {
   receipts: GroupReceipt[];
   balances: GroupBalance[];
   suggested: GroupSuggested[];
-  totals: GroupTotals;
+  analytics: LedgerAnalytics;
   currency: string;
   activity: GroupActivity[];
   loading: boolean;
@@ -70,6 +69,8 @@ function useGroup() {
   return ctx;
 }
 
+export { useGroup };
+
 function useGroupMoney() {
   const {
     state: { currency },
@@ -80,9 +81,7 @@ function useGroupMoney() {
   };
 }
 
-function emptyTotals(): GroupTotals {
-  return { groupSpending: 0, youPaid: 0, yourShare: 0 };
-}
+export { useGroupMoney };
 
 export function GroupProvider({ groupId, children }: { groupId: string; children: ReactNode }) {
   const [name, setName] = useState("Group");
@@ -91,7 +90,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
   const [receipts, setReceipts] = useState<GroupReceipt[]>([]);
   const [balances, setBalances] = useState<GroupBalance[]>([]);
   const [suggested, setSuggested] = useState<GroupSuggested[]>([]);
-  const [totals, setTotals] = useState<GroupTotals>(emptyTotals);
+  const [analytics, setAnalytics] = useState<LedgerAnalytics>(emptyAnalytics);
   const [currency, setCurrency] = useState("USD");
   const [activity, setActivity] = useState<GroupActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +114,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
         receipts?: GroupReceipt[];
         balances?: GroupBalance[];
         suggested?: GroupSuggested[];
-        totals?: GroupTotals;
+        analytics?: LedgerAnalytics;
         currency?: string;
         activity?: GroupActivity[];
       };
@@ -125,7 +124,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
       setReceipts(json.receipts ?? []);
       setBalances(json.balances ?? []);
       setSuggested(json.suggested ?? []);
-      setTotals(json.totals ?? emptyTotals());
+      setAnalytics(json.analytics ?? emptyAnalytics());
       setCurrency(json.currency || "USD");
       setActivity(json.activity ?? []);
       setError(null);
@@ -199,7 +198,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
     receipts,
     balances,
     suggested,
-    totals,
+    analytics,
     currency,
     activity,
     loading,
@@ -216,7 +215,7 @@ export function GroupProvider({ groupId, children }: { groupId: string; children
 const TABS = [
   { id: "receipts", label: "Receipts", suffix: "" },
   { id: "balances", label: "Balances", suffix: "/balances" },
-  { id: "totals", label: "Totals", suffix: "/totals" },
+  { id: "analytics", label: "Analytics", suffix: "/analytics" },
   { id: "activity", label: "Activity", suffix: "/activity" },
   { id: "settings", label: "Settings", suffix: "/settings" },
 ] as const;
@@ -433,32 +432,6 @@ export function GroupBalances() {
         </ul>
       )}
       <p className={styles.hint}>Recorded in Vouch. This is not a bank transfer.</p>
-    </section>
-  );
-}
-
-export function GroupTotals() {
-  const {
-    state: { totals },
-  } = useGroup();
-  const { money } = useGroupMoney();
-  return (
-    <section className={styles.panel} data-testid="group-totals">
-      <dl className={styles.totals}>
-        <div>
-          <dt>Group spending</dt>
-          <dd data-testid="totals-spending">{money(totals.groupSpending)}</dd>
-        </div>
-        <div>
-          <dt>You paid</dt>
-          <dd data-testid="totals-you-paid">{money(totals.youPaid)}</dd>
-        </div>
-        <div>
-          <dt>Your share</dt>
-          <dd data-testid="totals-your-share">{money(totals.yourShare)}</dd>
-        </div>
-      </dl>
-      <p className={styles.hint}>Group spending excludes settlements.</p>
     </section>
   );
 }

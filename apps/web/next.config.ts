@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["sharp"],
   experimental: {
     serverActions: { bodySizeLimit: "12mb" },
+    optimizePackageImports: ["recharts"],
   },
 };
 
