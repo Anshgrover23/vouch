@@ -78,6 +78,77 @@
   cursor: not-allowed;
 }
 
+.people {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seats {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 2px solid var(--color-ink);
+  background: var(--color-paper);
+}
+
+.seatName,
+.seatMeta {
+  margin: 0;
+}
+
+.seatName {
+  font-weight: 700;
+}
+
+.seatMeta {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+.seatActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.person {
+  width: 100%;
+  text-align: left;
+  border: 2px solid var(--color-ink);
+  padding: 10px 12px;
+  font: 500 1rem var(--font-body);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.personOn {
+  background: var(--color-lime);
+  color: var(--color-lime-ink);
+}
+
+.person:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .seatActions :global(.btn) {
+    width: 100%;
+  }
+}
+
 @media (max-width: 414px) {
   .overlay {
     padding: var(--space-md);
@@ -90,7 +161,8 @@
   }
 
   .actions :global(.btn),
-  .friend :global(.btn) {
+  .friend :global(.btn),
+  .seatActions :global(.btn) {
     width: 100%;
   }
 

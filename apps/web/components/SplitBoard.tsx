@@ -5,16 +5,13 @@ import {
   chatSplit,
   formatMoney,
   personShares,
+  personSlug,
   receiptCurrency,
   splitBalance,
   type SplitClaim,
   type SplitField,
 } from "@/lib/split";
 import styles from "./split-board.module.css";
-
-function personSlug(name: string) {
-  return name.toLowerCase().replace(/\s+/g, "-");
-}
 
 export function SplitBoard({
   fields,

@@ -5,21 +5,32 @@ import Link from "next/link";
 import { BrandMark } from "@/components/Brand";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
 import { SplitBoard } from "@/components/SplitBoard";
+import { seatLoginPath, seatSignupPath } from "@/lib/seat";
 import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type ClaimStance, type SplitClaim } from "@/lib/split";
 import styles from "./split.module.css";
 
 export type ShareViewer = { displayName: string } | null;
 
-export function ShareBoard({ token, viewer }: { token: string; viewer: ShareViewer }) {
+type Seat = { displayName: string; memberId: string; status: string };
+
+export function ShareBoard({ token, viewer, as }: { token: string; viewer: ShareViewer; as?: string | null }) {
   const [title, setTitle] = useState("Split");
   const [fields, setFields] = useState<CanvasField[]>([]);
   const [claims, setClaims] = useState<SplitClaim[]>([]);
+  const [people, setPeople] = useState<string[]>([]);
+  const [paidByName, setPaidByName] = useState("");
   const [page, setPage] = useState<CanvasPage | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const displayName = parseDisplayName(viewer?.displayName);
+  const [seat, setSeat] = useState<Seat | null>(null);
+  const invite = String(as ?? "").trim() || null;
+  const displayName = parseDisplayName(seat?.displayName ?? viewer?.displayName);
+  const memberId = seat?.memberId ?? null;
+  const signupHref = invite ? seatSignupPath(token, invite) : `/signup?next=${encodeURIComponent(`/s/${token}`)}`;
+  const loginHref = invite ? seatLoginPath(token, invite) : `/login?next=${encodeURIComponent(`/s/${token}`)}`;
 
   async function load(share: string) {
-    const res = await fetch(`/api/splits/${share}`);
+    const path = invite ? `/api/splits/${share}?as=${encodeURIComponent(invite)}` : `/api/splits/${share}`;
+    const res = await fetch(path, { credentials: "include" });
     if (!res.ok) {
       setError("This split link is not available.");
       return;
@@ -38,8 +49,17 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
         fieldId: c.fieldId,
         displayName: c.displayName,
         stance: c.stance,
+        memberId: c.memberId ?? null,
       })),
     );
+    setPaidByName(typeof json.document?.paidByName === "string" ? json.document.paidByName : "");
+    setPeople(
+      ((json.people ?? []) as unknown[])
+        .map((row) => parseDisplayName(row))
+        .filter((row): row is string => Boolean(row)),
+    );
+    const nextSeat = json.seat as Seat | null | undefined;
+    setSeat(nextSeat?.memberId ? nextSeat : null);
     const first = json.pages[0];
     if (first) setPage({ imageUrl: first.imageUrl, width: first.width, height: first.height });
     setError(null);
@@ -50,7 +70,7 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
     load(token);
     const t = setInterval(() => load(token), 4000);
     return () => clearInterval(t);
-  }, [token]);
+  }, [token, invite]);
 
   async function saveField(fieldId: string, value: string) {
     const res = await fetch(`/api/splits/${token}/fields`, {
@@ -66,19 +86,28 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
     await load(token);
   }
 
-  async function claimLine(fieldId: string, stance: ClaimStance) {
+  async function claimLine(fieldId: string, stance: ClaimStance, withNames?: string[]) {
     if (!viewer) {
-      window.location.assign(`/signup?next=${encodeURIComponent(`/s/${token}`)}`);
+      window.location.assign(signupHref);
       return;
     }
     const res = await fetch(`/api/splits/${token}/claims`, {
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fieldId, stance }),
+      body: JSON.stringify({ fieldId, stance, with: withNames, as: invite }),
     });
     if (res.status === 401) {
-      window.location.assign(`/login?next=${encodeURIComponent(`/s/${token}`)}`);
+      window.location.assign(loginHref);
+      return;
+    }
+    if (res.status === 409) {
+      const json = (await res.json().catch(() => ({}))) as { code?: string; error?: string };
+      if (json.code === "needs_friend") {
+        setError("Add a friend on the receipt first, then split equally.");
+        return;
+      }
+      setError(json.error || "Could not save that claim.");
       return;
     }
     if (!res.ok) {
@@ -88,8 +117,6 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
     setError(null);
     await load(token);
   }
-
-  const next = `/s/${token}`;
 
   return (
     <div className={styles.page}>
@@ -105,14 +132,18 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
 
       {viewer ? null : (
         <div className={styles.gate} data-testid="share-gate">
-          <p className="mono">this split</p>
-          <h2>Log in to vouch your lines.</h2>
-          <p>You can look at the receipt now. Claiming a line needs an account — no anonymous names.</p>
+          <p className="mono">{seat ? "your seat" : "this split"}</p>
+          <h2>{seat ? `Log in to vouch as ${seat.displayName}.` : "Log in to vouch your lines."}</h2>
+          <p>
+            {seat
+              ? `This link is ${seat.displayName}'s seat. You can look now. Claiming needs an account — the name stays ${seat.displayName}.`
+              : "You can look at the receipt now. Claiming a line needs an account — no anonymous names."}
+          </p>
           <div className={styles.cta}>
-            <Link className="btn btn-primary" href={`/signup?next=${encodeURIComponent(next)}`} data-testid="share-signup">
+            <Link className="btn btn-primary" href={signupHref} data-testid="share-signup">
               Sign up
             </Link>
-            <Link className="btn" href={`/login?next=${encodeURIComponent(next)}`} data-testid="share-login">
+            <Link className="btn" href={loginHref} data-testid="share-login">
               Log in
             </Link>
           </div>
@@ -125,7 +156,7 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
         <>
           <p className={styles.note}>
             {viewer
-              ? "Type your amount and tap I owe this to take the whole line. Split equally only if you are sharing it. The board below is the same for everyone."
+              ? "Type your amount and tap I owe this to take the whole line. Split equally shares it with a friend on this receipt."
               : "This is the receipt. Sign up or log in to tap the lines you owe."}
           </p>
           <div className={styles.stage}>
@@ -134,6 +165,9 @@ export function ShareBoard({ token, viewer }: { token: string; viewer: ShareView
               fields={fields}
               claims={claims}
               displayName={displayName}
+              memberId={memberId}
+              people={people}
+              paidByName={paidByName}
               readOnly={!viewer}
               onSaveField={viewer ? saveField : undefined}
               onClaim={claimLine}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { acceptGroupInvite, isUniqueViolation, provisionAccount } from "@/lib/account";
+import { bindSeatError, isUniqueViolation, memberByInvite, provisionAccount, acceptGroupInvite } from "@/lib/account";
 import { attachSession, publicSession, type Session } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { parseEmail, parsePassword, pgErrorCode } from "@/lib/paths";
@@ -18,7 +18,12 @@ export async function POST(req: Request) {
   };
   const email = parseEmail(body.email);
   const password = parsePassword(body.password);
-  const displayName = parseDisplayName(body.displayName);
+  const invite = (body.invite ?? url.searchParams.get("invite") ?? "").trim() || undefined;
+  const seat = invite ? await memberByInvite(db(), invite) : null;
+  if (invite && !seat) {
+    return NextResponse.json({ error: "That invite link is not available." }, { status: 404 });
+  }
+  const displayName = seat ? parseDisplayName(seat.displayName) : parseDisplayName(body.displayName);
   if (!email || !password || !displayName) {
     return NextResponse.json(
       { error: "Need an email, a name, and a password of at least 8 characters." },
@@ -30,13 +35,18 @@ export async function POST(req: Request) {
     const passwordHash = await hashPassword(password);
     const { user, workspace } = await db().transaction(async (tx) => {
       const account = await provisionAccount(tx, { email, displayName, passwordHash });
-      const invited = await acceptGroupInvite(tx, body.invite ?? url.searchParams.get("invite") ?? undefined, {
+      if (!invite) {
+        return { user: account.user, workspace: account.workspace };
+      }
+      const invited = await acceptGroupInvite(tx, invite, {
         userId: account.user.id,
         displayName,
       });
+      if (!invited) return { user: account.user, workspace: account.workspace };
+      if (!invited.ok) throw new Error(invited.code);
       return {
-        user: account.user,
-        workspace: invited ? { id: invited.workspaceId } : account.workspace,
+        user: { ...account.user, displayName: invited.member.displayName },
+        workspace: { id: invited.group.workspaceId },
       };
     });
 
@@ -52,6 +62,10 @@ export async function POST(req: Request) {
   } catch (error) {
     if (isUniqueViolation(error) || pgErrorCode(error) === "23505") {
       return NextResponse.json({ error: "That email is already in use." }, { status: 409 });
+    }
+    const message = error instanceof Error ? error.message : "";
+    if (message === "taken" || message === "already_on_bill" || message === "not_found") {
+      return NextResponse.json({ error: bindSeatError(message, seat?.displayName) }, { status: 409 });
     }
     console.error("[auth signup]", error);
     return NextResponse.json({ error: "Could not create that account." }, { status: 500 });

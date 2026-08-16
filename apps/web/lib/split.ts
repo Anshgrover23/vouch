@@ -16,7 +16,16 @@ export type SplitClaim = {
   fieldId: string;
   displayName: string;
   stance: string;
+  memberId?: string | null;
 };
+
+export function claimIsMine(
+  claim: Pick<SplitClaim, "displayName" | "memberId">,
+  viewer: { displayName?: string | null; memberId?: string | null },
+) {
+  if (viewer.memberId && claim.memberId) return claim.memberId === viewer.memberId;
+  return Boolean(viewer.displayName && claim.displayName === viewer.displayName);
+}
 
 export type ClaimStance = "owe" | "not_mine" | "split";
 
@@ -234,6 +243,60 @@ export function displayNameIssue(raw: unknown) {
 export function parseDisplayName(raw: unknown) {
   if (displayNameIssue(raw)) return null;
   return String(raw ?? "").trim().replace(/\s+/g, " ");
+}
+
+export function personSlug(name: string) {
+  return name.toLowerCase().replace(/\s+/g, "-");
+}
+
+export function namesOnReceipt(input: {
+  displayName?: string | null;
+  paidByName?: string | null;
+  people?: Array<string | null | undefined>;
+  claims?: Array<{ displayName: string }>;
+}) {
+  const names = new Set<string>();
+  for (const raw of [
+    input.displayName,
+    input.paidByName,
+    ...(input.people ?? []),
+    ...(input.claims ?? []).map((claim) => claim.displayName),
+  ]) {
+    const name = parseDisplayName(raw);
+    if (name) names.add(name);
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+export function otherPeopleOnReceipt(me: string, people: string[]) {
+  return people.filter((name) => name !== me);
+}
+
+export type SplitResolveError = {
+  code: "needs_friend" | "needs_picker" | "unknown_person";
+  others: string[];
+  name?: string;
+};
+
+export function resolveSplitWith(
+  me: string,
+  others: string[],
+  requested?: string[] | null,
+): { names: string[] } | SplitResolveError {
+  const allowed = new Set(others);
+  const partners: string[] = [];
+  for (const raw of requested ?? []) {
+    const name = parseDisplayName(raw);
+    if (!name || name === me) continue;
+    if (!allowed.has(name)) {
+      return { code: "unknown_person", others, name };
+    }
+    if (!partners.includes(name)) partners.push(name);
+  }
+  if (partners.length > 0) return { names: partners };
+  if (others.length === 0) return { code: "needs_friend", others };
+  if (others.length === 1) return { names: others };
+  return { code: "needs_picker", others };
 }
 
 export function prettyTitle(raw: string) {

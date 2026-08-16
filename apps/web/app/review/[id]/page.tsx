@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
-import { Invite } from "@/components/InviteSheet";
+import { Invite, type InviteFriend } from "@/components/InviteSheet";
 import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/ReviewCanvas";
+import { ShareLinks, type ShareSeat } from "@/components/ShareLinks";
 import { SplitBoard } from "@/components/SplitBoard";
 import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type ClaimStance, type SplitClaim } from "@/lib/split";
 import styles from "./review.module.css";
@@ -22,11 +23,15 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [page, setPage] = useState<CanvasPage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shareToken, setShareToken] = useState("");
-  const [copied, setCopied] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteSeen, setInviteSeen] = useState(false);
+  const [inviteReason, setInviteReason] = useState<"share" | "split">("share");
+  const [shareOpen, setShareOpen] = useState(false);
+  const [memberId, setMemberId] = useState<string | null>(null);
+  const [seats, setSeats] = useState<ShareSeat[]>([]);
+  const pendingSplit = useRef<string | null>(null);
   const [waiting, setWaiting] = useState<string[]>([]);
   const [paidByName, setPaidByName] = useState("");
   const [people, setPeople] = useState<string[]>([]);
@@ -68,7 +73,20 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
         fieldId: c.fieldId,
         displayName: c.displayName,
         stance: c.stance,
+        memberId: c.memberId ?? null,
       })),
+    );
+    setMemberId(typeof json.you?.memberId === "string" ? json.you.memberId : null);
+    const youName = parseDisplayName(json.you?.displayName);
+    if (youName) setDisplayName(youName);
+    setSeats(
+      ((json.seats ?? []) as Array<ShareSeat & { you?: boolean }>)
+        .filter((row) => !row.you && parseDisplayName(row.displayName) && row.inviteToken)
+        .map((row) => ({
+          displayName: parseDisplayName(row.displayName) as string,
+          inviteToken: row.inviteToken,
+          status: row.status,
+        })),
     );
     setWaiting(
       ((json.waiting ?? []) as Array<{ displayName?: string }>)
@@ -100,7 +118,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const showSplit = showCanvas && hasValues;
 
   useEffect(() => {
-    if (hasValues && !reading && !inviteSeen) setInviteOpen(true);
+    if (hasValues && !reading && !inviteSeen) {
+      setInviteReason("share");
+      setInviteOpen(true);
+    }
   }, [hasValues, reading, inviteSeen]);
 
   async function saveField(fieldId: string, value: string) {
@@ -155,7 +176,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     });
   }
 
-  async function claimLine(fieldId: string, stance: ClaimStance) {
+  const claimLine = useCallback(async (fieldId: string, stance: ClaimStance, withNames?: string[]) => {
     if (!shareToken) {
       setError("This receipt is not ready to split yet.");
       return;
@@ -164,37 +185,67 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
       method: "POST",
       credentials: "include",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fieldId, stance }),
+      body: JSON.stringify({ fieldId, stance, with: withNames }),
     });
+    if (res.status === 409) {
+      const json = (await res.json().catch(() => ({}))) as { code?: string };
+      if (json.code === "needs_friend") {
+        pendingSplit.current = fieldId;
+        setInviteReason("split");
+        setInviteOpen(true);
+        return;
+      }
+    }
     if (!res.ok) {
       setError("Could not save that claim.");
       return;
     }
     setError(null);
     await load(id);
-  }
+  }, [id, shareToken]);
 
   const dismissInvite = useCallback(() => {
+    pendingSplit.current = null;
     setInviteOpen(false);
     setInviteSeen(true);
   }, []);
 
+  const needFriend = useCallback((fieldId: string) => {
+    pendingSplit.current = fieldId;
+    setInviteReason("split");
+    setInviteOpen(true);
+  }, []);
+
   const addFriend = useCallback(
-    async (displayName: string) => {
+    async (name: string): Promise<InviteFriend | void> => {
+      const parsed = parseDisplayName(name);
       const res = await fetch(`/api/documents/${id}/invites`, {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ displayName }),
+        body: JSON.stringify({ displayName: name }),
       });
       if (!res.ok) {
         setError("Could not add that friend.");
         return;
       }
+      const json = (await res.json().catch(() => ({}))) as {
+        member?: { displayName?: string; inviteToken?: string };
+      };
       setError(null);
       await load(id);
+      const fieldId = pendingSplit.current;
+      if (fieldId && parsed) {
+        pendingSplit.current = null;
+        await claimLine(fieldId, "split", [parsed]);
+        setInviteOpen(false);
+        setInviteSeen(true);
+      }
+      const friendName = parseDisplayName(json.member?.displayName) ?? parsed;
+      const inviteToken = String(json.member?.inviteToken ?? "").trim();
+      if (friendName && inviteToken) return { displayName: friendName, inviteToken };
     },
-    [id],
+    [id, claimLine],
   );
 
   const shareUrl = shareToken && typeof window !== "undefined" ? `${window.location.origin}/s/${shareToken}` : "";
@@ -207,19 +258,14 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           <button
             className="btn btn-primary"
             type="button"
+            data-testid="share-open"
             disabled={!shareUrl}
-            onClick={async () => {
-              await navigator.clipboard.writeText(shareUrl);
-              setCopied(true);
-              window.setTimeout(() => setCopied(false), 1600);
-            }}
+            onClick={() => setShareOpen(true)}
           >
-            {copied ? "Copied" : (
-              <>
-                <span className={styles.shareLong}>Share with friends</span>
-                <span className={styles.shareShort}>Share</span>
-              </>
-            )}
+            <>
+              <span className={styles.shareLong}>Share with friends</span>
+              <span className={styles.shareShort}>Share</span>
+            </>
           </button>
         )
       }
@@ -250,7 +296,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
             <p className={styles.note}>Type the lines you can see. Then tap what you owe and send the link.</p>
           ) : (
             <p className={styles.note}>
-              Type 60 and tap I owe this — that person owes $60. Split equally only if you are sharing the same line.
+              Type 60 and tap I owe this — that person owes $60. Split equally shares the line with a friend on this receipt.
             </p>
           )}
 
@@ -263,8 +309,10 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 onRenameField={renameField}
                 onRemoveField={removeField}
                 onClaim={displayName ? claimLine : undefined}
+                onNeedFriend={displayName ? needFriend : undefined}
                 claims={claims}
                 displayName={displayName}
+                memberId={memberId}
                 paidByName={paidByName}
                 people={people}
                 onPaidByChange={(next) => void savePaidBy(next)}
@@ -287,8 +335,8 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
           {inviteOpen && shareUrl ? (
             <Invite.Root shareUrl={shareUrl} onDismiss={dismissInvite} onAddFriend={addFriend}>
               <Invite.Frame>
-                <Invite.Title />
-                <Invite.Lede />
+                {inviteReason === "split" ? <Invite.SplitTitle /> : <Invite.Title />}
+                {inviteReason === "split" ? <Invite.SplitLede /> : <Invite.Lede />}
                 <Invite.Friend />
                 <Invite.Actions>
                   <Invite.WhatsApp />
@@ -297,6 +345,20 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
                 </Invite.Actions>
               </Invite.Frame>
             </Invite.Root>
+          ) : null}
+
+          {shareOpen && shareUrl ? (
+            <ShareLinks.Root shareUrl={shareUrl} seats={seats} onDismiss={() => setShareOpen(false)}>
+              <ShareLinks.Frame>
+                <ShareLinks.Title />
+                <ShareLinks.Lede />
+                <ShareLinks.ViewOnly />
+                <ShareLinks.Seats />
+                <ShareLinks.Actions>
+                  <ShareLinks.Dismiss />
+                </ShareLinks.Actions>
+              </ShareLinks.Frame>
+            </ShareLinks.Root>
           ) : null}
         </>
       )}

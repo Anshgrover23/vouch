@@ -13,7 +13,7 @@ type FieldErrors = {
 
 const NONE: FieldErrors = { email: null, password: null };
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, invite }: { next: string; invite: string | null }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fields, setFields] = useState<FieldErrors>(NONE);
@@ -45,7 +45,7 @@ export function LoginForm({ next }: { next: string }) {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, invite }),
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {

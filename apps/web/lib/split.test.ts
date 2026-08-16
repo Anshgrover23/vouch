@@ -21,8 +21,10 @@ import {
   personShares,
   receiptCurrency,
   remainderGap,
+  resolveSplitWith,
   roundMoney,
   splitBalance,
+  claimIsMine,
   type SplitClaim,
   type SplitField,
 } from "./split";
@@ -304,5 +306,52 @@ describe("personShares", () => {
     assert.equal(people.length, 1);
     assert.equal(people[0]?.name, "Goru");
     assert.equal(people[0]?.total, 60);
+  });
+});
+
+describe("resolveSplitWith", () => {
+  it("asks for a friend when nobody else is on the receipt", () => {
+    const result = resolveSplitWith("Ansh", [], null);
+    assert.deepEqual(result, { code: "needs_friend", others: [] });
+  });
+
+  it("splits with the only other person without a picker", () => {
+    const result = resolveSplitWith("Ansh", ["Goru"], null);
+    assert.deepEqual(result, { names: ["Goru"] });
+  });
+
+  it("opens a picker when two or more friends are on the receipt", () => {
+    const result = resolveSplitWith("Ansh", ["Goru", "Priya"], null);
+    assert.deepEqual(result, { code: "needs_picker", others: ["Goru", "Priya"] });
+  });
+
+  it("keeps a chosen subset when the picker sends names", () => {
+    const result = resolveSplitWith("Ansh", ["Goru", "Priya"], ["Priya"]);
+    assert.deepEqual(result, { names: ["Priya"] });
+  });
+
+  it("rejects a name that is not on the receipt", () => {
+    const result = resolveSplitWith("Ansh", ["Goru"], ["Rio"]);
+    assert.ok(!("names" in result));
+    if ("names" in result) return;
+    assert.equal(result.code, "unknown_person");
+  });
+});
+
+describe("claimIsMine", () => {
+  it("matches the seat id when both claims and the viewer have one", () => {
+    assert.equal(
+      claimIsMine({ displayName: "Goru", memberId: "seat-1" }, { displayName: "Goru1", memberId: "seat-1" }),
+      true,
+    );
+    assert.equal(
+      claimIsMine({ displayName: "Goru", memberId: "seat-1" }, { displayName: "Goru", memberId: "seat-2" }),
+      false,
+    );
+  });
+
+  it("falls back to the name when there is no seat id yet", () => {
+    assert.equal(claimIsMine({ displayName: "Goru" }, { displayName: "Goru" }), true);
+    assert.equal(claimIsMine({ displayName: "Goru" }, { displayName: "Harshita" }), false);
   });
 });

@@ -23,13 +23,23 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     const peoplePromise = doc.groupId
       ? db()
           .select({
+            id: groupMembers.id,
             displayName: groupMembers.displayName,
             status: groupMembers.status,
             inviteToken: groupMembers.inviteToken,
+            userId: groupMembers.userId,
           })
           .from(groupMembers)
           .where(eq(groupMembers.groupId, doc.groupId))
-      : Promise.resolve([]);
+      : Promise.resolve(
+          [] as Array<{
+            id: string;
+            displayName: string;
+            status: string;
+            inviteToken: string;
+            userId: string | null;
+          }>,
+        );
     const waitingPromise = peoplePromise.then((rows) => rows.filter((row) => row.status === "invited"));
     const [pages, fieldRows, claims, waiting, people] = await Promise.all([
       pagesPromise,
@@ -38,6 +48,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       waitingPromise,
       peoplePromise,
     ]);
+    const you = people.find((row) => row.userId === session.userId) ?? null;
     return Response.json({
       document: {
         id: doc.id,
@@ -58,6 +69,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       claims,
       waiting,
       people: people.map((row) => row.displayName),
+      you: you ? { memberId: you.id, displayName: you.displayName } : null,
+      seats: people.map((row) => ({
+        memberId: row.id,
+        displayName: row.displayName,
+        status: row.status,
+        inviteToken: row.inviteToken,
+        you: row.userId === session.userId,
+      })),
     });
   } catch {
     return Response.json({ error: "unauthorized" }, { status: 401 });

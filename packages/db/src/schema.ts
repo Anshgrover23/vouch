@@ -73,6 +73,7 @@ export const groupMembers = pgTable("group_members", {
   ...timestamps,
 }, (t) => [
   uniqueIndex("group_members_invite_token_idx").on(t.inviteToken),
+  uniqueIndex("group_members_group_user_idx").on(t.groupId, t.userId),
   index("group_members_group_idx").on(t.groupId),
   index("group_members_user_idx").on(t.userId),
 ]);
@@ -186,14 +187,17 @@ export const splitClaims = pgTable("split_claims", {
   documentId: uuid("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
   fieldId: uuid("field_id").notNull().references(() => fields.id, { onDelete: "cascade" }),
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  memberId: uuid("member_id").references(() => groupMembers.id, { onDelete: "cascade" }),
   displayName: text("display_name").notNull(),
   stance: text("stance").notNull(),
   ...timestamps,
 }, (t) => [
   uniqueIndex("split_claims_doc_field_name_idx").on(t.documentId, t.fieldId, t.displayName),
+  uniqueIndex("split_claims_doc_field_member_idx").on(t.documentId, t.fieldId, t.memberId),
   index("split_claims_document_idx").on(t.documentId),
   index("split_claims_field_idx").on(t.fieldId),
   index("split_claims_workspace_idx").on(t.workspaceId),
+  index("split_claims_member_idx").on(t.memberId),
 ]);
 
 export const precontextBlobs = pgTable("precontext_blobs", {

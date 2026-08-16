@@ -1,9 +1,10 @@
-import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { users } from "@proofsheet/db";
+import { renameAccountDisplayName } from "@/lib/account";
 import { attachSession, publicSession, requireSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { parseDisplayName } from "@/lib/split";
+import { eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -33,10 +34,11 @@ export async function PATCH(req: Request) {
     if (!displayName) {
       return NextResponse.json({ error: "Use a name between 1 and 48 characters." }, { status: 400 });
     }
-    await db()
-      .update(users)
-      .set({ displayName, updatedAt: new Date() })
-      .where(eq(users.id, session.userId));
+    await renameAccountDisplayName(
+      db(),
+      { userId: session.userId, workspaceId: session.workspaceId, oldName: session.displayName },
+      displayName,
+    );
     const next = { ...session, displayName };
     const res = NextResponse.json({ ok: true, session: publicSession(next) });
     return attachSession(res, next);

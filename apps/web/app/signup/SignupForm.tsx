@@ -15,7 +15,15 @@ type FieldErrors = {
 
 const NONE: FieldErrors = { displayName: null, email: null, password: null };
 
-export function SignupForm({ next, invite }: { next: string; invite: string | null }) {
+export function SignupForm({
+  next,
+  invite,
+  seatName,
+}: {
+  next: string;
+  invite: string | null;
+  seatName: string | null;
+}) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,11 +33,12 @@ export function SignupForm({ next, invite }: { next: string; invite: string | nu
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
+  const joiningAs = Boolean(invite && seatName);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     const nextFields: FieldErrors = {
-      displayName: displayNameIssue(displayName),
+      displayName: joiningAs ? null : displayNameIssue(displayName),
       email: emailIssue(email),
       password: passwordIssue(password),
     };
@@ -77,20 +86,28 @@ export function SignupForm({ next, invite }: { next: string; invite: string | nu
           {error}
         </p>
       ) : null}
-      <AuthField
-        ref={nameRef}
-        label="your name"
-        testId="auth-name"
-        autoComplete="name"
-        maxLength={48}
-        value={displayName}
-        error={fields.displayName}
-        placeholder="Rio"
-        onChange={(e) => {
-          setDisplayName(e.target.value);
-          setFields((curr) => (curr.displayName ? { ...curr, displayName: displayNameIssue(e.target.value) } : curr));
-        }}
-      />
+      {joiningAs ? (
+        <p className={styles.card} data-testid="signup-seat">
+          <span className="mono">your seat</span>
+          <strong>You&apos;re joining as {seatName}</strong>
+          <span>You can rename later in Account. This name is what the bill uses.</span>
+        </p>
+      ) : (
+        <AuthField
+          ref={nameRef}
+          label="your name"
+          testId="auth-name"
+          autoComplete="name"
+          maxLength={48}
+          value={displayName}
+          error={fields.displayName}
+          placeholder="Rio"
+          onChange={(e) => {
+            setDisplayName(e.target.value);
+            setFields((curr) => (curr.displayName ? { ...curr, displayName: displayNameIssue(e.target.value) } : curr));
+          }}
+        />
+      )}
       <AuthField
         ref={emailRef}
         label="email"

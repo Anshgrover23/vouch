@@ -1,11 +1,15 @@
 "use client";
 
 import { createContext, use, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { seatInviteMessage, withSeatQuery } from "@/lib/seat";
 import styles from "./invite-sheet.module.css";
+
+export type InviteFriend = { displayName: string; inviteToken: string };
 
 type InviteState = {
   copied: boolean;
   adding: boolean;
+  lastSeat: InviteFriend | null;
 };
 
 type InviteActions = {
@@ -41,19 +45,21 @@ function Root({
 }: {
   shareUrl: string;
   onDismiss: () => void;
-  onAddFriend: (name: string) => Promise<void>;
+  onAddFriend: (name: string) => Promise<InviteFriend | void>;
   children: ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
   const [adding, setAdding] = useState(false);
-  const message = `You're on this split. Tap what you owe: ${shareUrl}`;
+  const [lastSeat, setLastSeat] = useState<InviteFriend | null>(null);
+  const link = withSeatQuery(shareUrl, lastSeat?.inviteToken);
+  const message = seatInviteMessage(link, lastSeat?.displayName);
 
   const value = useMemo<InviteContextValue>(
     () => ({
-      state: { copied, adding },
+      state: { copied, adding, lastSeat },
       actions: {
         copy: async () => {
-          await navigator.clipboard.writeText(shareUrl);
+          await navigator.clipboard.writeText(link);
           setCopied(true);
           window.setTimeout(() => setCopied(false), 1600);
         },
@@ -61,15 +67,16 @@ function Root({
         addFriend: async (name) => {
           setAdding(true);
           try {
-            await onAddFriend(name);
+            const friend = await onAddFriend(name);
+            if (friend?.inviteToken) setLastSeat(friend);
           } finally {
             setAdding(false);
           }
         },
       },
-      meta: { shareUrl, message },
+      meta: { shareUrl: link, message },
     }),
-    [copied, adding, shareUrl, message, onDismiss, onAddFriend],
+    [copied, adding, lastSeat, link, message, onDismiss, onAddFriend],
   );
 
   return <InviteContext value={value}>{children}</InviteContext>;
@@ -110,11 +117,31 @@ function Title() {
   );
 }
 
+function SplitTitle() {
+  return (
+    <>
+      <p className="mono">split equally</p>
+      <h2 id="invite-title">Add a friend to split</h2>
+    </>
+  );
+}
+
 function Lede() {
+  const { state } = useInvite();
   return (
     <p className={styles.lede}>
-      Send the join link. Your friend needs to create an account before they can accept. Adding a name here only holds
-      their seat — it does not tap I owe this for them.
+      {state.lastSeat
+        ? `Send ${state.lastSeat.displayName} their own link. Opening it puts them in that seat — they do not pick a name.`
+        : "Send the join link. Your friend needs to create an account before they can accept. Adding a name here only holds their seat — it does not tap I owe this for them."}
+    </p>
+  );
+}
+
+function SplitLede() {
+  return (
+    <p className={styles.lede}>
+      Split equally needs someone to share the line with. Add a friend, then their half lands on the bill — they do not
+      have to tap Split equally when they open the link.
     </p>
   );
 }
@@ -140,13 +167,13 @@ function WhatsApp() {
 
 function CopyLink() {
   const {
-    state: { copied },
+    state: { copied, lastSeat },
     actions: { copy },
     meta: { shareUrl },
   } = useInvite();
   return (
     <button className="btn btn-primary" type="button" data-testid="invite-copy" disabled={!shareUrl} onClick={() => void copy()}>
-      {copied ? "Copied" : "Copy join link"}
+      {copied ? "Copied" : lastSeat ? `Copy ${lastSeat.displayName}'s link` : "Copy join link"}
     </button>
   );
 }
@@ -202,7 +229,9 @@ export const Invite = {
   Root,
   Frame,
   Title,
+  SplitTitle,
   Lede,
+  SplitLede,
   WhatsApp,
   CopyLink,
   Dismiss,

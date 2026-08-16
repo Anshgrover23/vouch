@@ -92,6 +92,19 @@ export async function createGroup(page: Page, name: string) {
 export async function addGroupMember(page: Page, groupId: string, displayName: string) {
   const res = await page.request.post(`/api/groups/${groupId}/members`, { data: { displayName } });
   expect(res.ok(), await res.text()).toBeTruthy();
+  const json = (await res.json()) as {
+    member: { id: string; displayName: string; inviteToken: string; status: string };
+  };
+  return json.member;
+}
+
+export async function documentSeats(page: Page, id: string) {
+  const res = await page.request.get(`/api/documents/${id}`);
+  expect(res.ok(), await res.text()).toBeTruthy();
+  const json = (await res.json()) as {
+    seats?: Array<{ displayName: string; inviteToken: string; you?: boolean }>;
+  };
+  return json.seats ?? [];
 }
 
 export async function dismissInvite(page: Page) {

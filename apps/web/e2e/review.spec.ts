@@ -112,10 +112,12 @@ test.describe("review canvas (Hillcrest fixture)", () => {
     const whatsapp = page.getByTestId("invite-whatsapp");
     await expect(whatsapp).toHaveAttribute("href", /https:\/\/wa\.me\/\?text=/);
     await expect(whatsapp).toHaveAttribute("href", new RegExp(shareToken));
+    await expect(whatsapp).not.toHaveAttribute("href", /as%3D/);
     await page.getByTestId("invite-copy").click();
     await expect(page.getByTestId("invite-copy")).toHaveText(/Copied/i);
     await page.getByTestId("invite-friend-name").fill("Goru");
     await page.getByTestId("invite-friend-add").click();
+    await expect(whatsapp).toHaveAttribute("href", /as%3D/);
     await page.getByTestId("invite-dismiss").click();
     await expect(sheet).toHaveCount(0);
     await expect(page.getByTestId("waiting-banner")).toContainText("Waiting for Goru");
@@ -125,13 +127,66 @@ test.describe("review canvas (Hillcrest fixture)", () => {
     await expect(page.getByTestId("person-total-ansh")).toHaveText("$5.29");
   });
 
-  test("Split equally with one person waits for the other to tap it too", async ({ page }) => {
+  test("share picker has a view-only bill link and Goru's seat link on phone and desktop", async ({ page }) => {
+    const { id, shareToken } = await createGroceryReceipt(page);
+    await openReview(page, id);
+    await page.getByTestId("share-open").click();
+    await expect(page.getByTestId("share-picker")).toBeVisible();
+    const viewWhatsapp = page.getByTestId("share-view-whatsapp");
+    await expect(viewWhatsapp).toHaveAttribute("href", new RegExp(shareToken));
+    await expect(viewWhatsapp).not.toHaveAttribute("href", /as%3D/);
+    await page.getByTestId("share-picker-dismiss").click();
+
+    await page.request.post(`/api/documents/${id}/invites`, { data: { displayName: "Goru" } });
+    await page.reload();
+    await dismissInvite(page);
+
+    await page.getByTestId("share-open").click();
+    await expect(page.getByTestId("share-seat-goru-whatsapp")).toHaveAttribute("href", /as%3D/);
+    await expect(page.getByTestId("share-seat-goru-copy")).toBeVisible();
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    const copy = page.getByTestId("share-seat-goru-copy");
+    const box = await copy.boundingBox();
+    expect(box).toBeTruthy();
+    expect(box!.width).toBeGreaterThan(280);
+  });
+
+  test("Split equally with no friend opens the invite sheet, then splits after adding one", async ({ page }) => {
     const { id } = await createGroceryReceipt(page);
     await openReview(page, id);
     await page.getByTestId("split-item_3").click();
-    await expect(page.getByTestId("owe-item_3")).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByTestId("line-item_3")).toContainText("The other person taps Split equally");
-    await expect(page.getByTestId("person-total-ansh")).toHaveText("$5.29");
+    const sheet = page.getByTestId("invite-sheet");
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("heading", { name: "Add a friend to split" })).toBeVisible();
+    await page.getByTestId("invite-friend-name").fill("Goru");
+    await page.getByTestId("invite-friend-add").click();
+    await expect(sheet).toHaveCount(0);
+    await expect(page.getByTestId("split-item_3")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("line-item_3")).toContainText("$2.65 each");
+    await expect(page.getByTestId("person-total-ansh")).toHaveText("$2.65");
+    await expect(page.getByTestId("person-total-goru")).toHaveText("$2.65");
+  });
+
+  test("Split equally with two friends opens a picker and splits with the chosen person", async ({ page }) => {
+    const group = await createGroup(page, "412 Oak");
+    await addGroupMember(page, group.id, "Goru");
+    await addGroupMember(page, group.id, "Priya");
+    const { id } = await createGroceryReceipt(page, group.id);
+    await openReview(page, id);
+    await page.getByTestId("split-item_3").click();
+    const picker = page.getByTestId("split-picker");
+    await expect(picker).toBeVisible();
+    await expect(picker.getByRole("heading", { name: "Who shares it?" })).toBeVisible();
+    await expect(page.getByTestId("split-picker-confirm")).toBeDisabled();
+    await page.getByTestId("split-with-goru").click();
+    await page.getByTestId("split-picker-confirm").click();
+    await expect(picker).toHaveCount(0);
+    await expect(page.getByTestId("split-item_3")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("line-item_3")).toContainText("$2.65 each");
+    await expect(page.getByTestId("person-total-ansh")).toHaveText("$2.65");
+    await expect(page.getByTestId("person-total-goru")).toHaveText("$2.65");
+    await expect(page.getByTestId("person-priya")).toHaveCount(0);
   });
 
   test("Not mine marks the line without taking it", async ({ page }) => {
