@@ -2,6 +2,9 @@ import {
   assignedTotal,
   fieldValue,
   formatMoney,
+  isClaimableKey,
+  lineAmount,
+  lineLabel,
   parseDisplayName,
   parseMoney,
   personShares,
@@ -184,9 +187,44 @@ export function exportReceiptRows(receipts: LedgerReceipt[], people: string[]) {
   return { headers, rows };
 }
 
-export function receiptsCsv(receipts: LedgerReceipt[], people: string[]) {
-  const { headers, rows } = exportReceiptRows(receipts, people);
+export function exportLineItemRows(receipts: LedgerReceipt[], people: string[]) {
+  const headers = ["Merchant", "Date", "Item", "Amount", "Paid by", "Claimed by", ...people];
+  const rows: Array<Array<string | number>> = [];
+  for (const receipt of receipts) {
+    const merchant = receiptHeadline(receipt.fields, receipt.title ?? "Receipt");
+    const date = shortDate(fieldValue(receipt.fields, "date"));
+    for (const field of receipt.fields) {
+      if (!field.id || !isClaimableKey(field.key)) continue;
+      const amount = lineAmount(field);
+      if (amount == null) continue;
+      const owing = receipt.claims.filter((claim) => claim.fieldId === field.id && claim.stance === "owe");
+      const each = owing.length > 0 ? roundMoney(amount / owing.length) : null;
+      const claimedBy = [...new Set(owing.map((claim) => claim.displayName))];
+      rows.push([
+        merchant,
+        date,
+        lineLabel(field),
+        amount.toFixed(2),
+        receipt.paidByName,
+        claimedBy.join(", "),
+        ...people.map((name) => {
+          if (each == null || !claimedBy.includes(name)) return "";
+          return each.toFixed(2);
+        }),
+      ]);
+    }
+  }
+  return { headers, rows };
+}
+
+function csvTable(headers: string[], rows: Array<Array<string | number>>) {
   return [csvEscapeRow(headers), ...rows.map((row) => csvEscapeRow(row))].join("\n");
+}
+
+export function receiptsCsv(receipts: LedgerReceipt[], people: string[]) {
+  const items = exportLineItemRows(receipts, people);
+  const totals = exportReceiptRows(receipts, people);
+  return [csvTable(items.headers, items.rows), "", csvTable(totals.headers, totals.rows)].join("\n");
 }
 
 export function moneyLabel(value: number, currency?: string) {

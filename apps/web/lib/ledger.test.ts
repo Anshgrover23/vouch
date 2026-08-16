@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { groceryFields } from "@proofsheet/interfaze";
 import {
+  exportLineItemRows,
   exportReceiptRows,
   groupTotals,
   personNets,
@@ -118,6 +119,29 @@ describe("CSV export", () => {
     assert.equal(rows[0][3], "Ansh");
     assert.equal(rows[0][4], "");
     assert.equal(rows[0][5], "8.91");
-    assert.match(receiptsCsv(receipts, ["Ansh", "Goru"]), /^Merchant,Date,Total,Paid by,Ansh,Goru\n/);
+  });
+
+  it("emits every line item with who claimed it", () => {
+    const receipts = [hillcrest("Ansh", [{ fieldId: "item_6", displayName: "Goru", stance: "owe" }])];
+    const { headers, rows } = exportLineItemRows(receipts, ["Ansh", "Goru"]);
+    assert.deepEqual(headers, ["Merchant", "Date", "Item", "Amount", "Paid by", "Claimed by", "Ansh", "Goru"]);
+    const eggs = rows.find((row) => String(row[2]) === "EGGS 12CT");
+    assert.ok(eggs);
+    assert.equal(eggs[0], "HILLCREST MARKET");
+    assert.equal(eggs[3], "8.91");
+    assert.equal(eggs[4], "Ansh");
+    assert.equal(eggs[5], "Goru");
+    assert.equal(eggs[6], "");
+    assert.equal(eggs[7], "8.91");
+    const berries = rows.find((row) => String(row[2]) === "ORG BLUEBERRIES");
+    assert.ok(berries);
+    assert.equal(berries[3], "6.99");
+    assert.equal(berries[5], "");
+    assert.equal(berries[6], "");
+    assert.equal(berries[7], "");
+    const csv = receiptsCsv(receipts, ["Ansh", "Goru"]);
+    assert.match(csv, /^Merchant,Date,Item,Amount,Paid by,Claimed by,Ansh,Goru\n/);
+    assert.match(csv, /EGGS 12CT,8.91,Ansh,Goru,,8.91/);
+    assert.match(csv, /\nMerchant,Date,Total,Paid by,Ansh,Goru\n/);
   });
 });

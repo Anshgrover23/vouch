@@ -121,6 +121,9 @@ test.describe("group chrome leftover flows", () => {
     const body = readFileSync(filePath!, "utf8");
     expect(body).toMatch(/Merchant/);
     expect(body).toMatch(/Hillcrest/i);
+    expect(body).toMatch(/OAT MILK/);
+    expect(body).toMatch(/EGGS 12CT/);
+    expect(body).toMatch(/Item,Amount,Paid by,Claimed by/);
 
     await page.getByTestId("group-back").click();
     await page.waitForURL(/\/groups$/);

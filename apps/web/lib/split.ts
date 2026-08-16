@@ -310,11 +310,11 @@ export function receiptHeadline(fields: SplitField[], fallback = "Receipt") {
   return fieldValue(fields, "merchant") || fieldValue(fields, "recipient") || prettyTitle(fallback);
 }
 
-function lineAmount(field: SplitField) {
+export function lineAmount(field: SplitField) {
   return parseMoney(sanitizeFieldValue(field.humanValue) || sanitizeFieldValue(field.modelValue));
 }
 
-function lineLabel(field: SplitField) {
+export function lineLabel(field: SplitField) {
   const name = (field.label ?? "").trim();
   if (name && parseMoney(name) == null) return name;
   const text = sanitizeFieldValue(field.humanValue) || sanitizeFieldValue(field.modelValue);
