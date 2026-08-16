@@ -107,7 +107,11 @@ test.describe("group chrome leftover flows", () => {
 
     await page.getByTestId("group-tab-settings").click();
     await page.getByTestId("settings-notes").fill("Wifi: oak-guest");
+    const saved = page.waitForResponse(
+      (res) => res.url().includes(`/api/groups/${group.id}`) && res.request().method() === "PATCH" && res.ok(),
+    );
     await page.getByTestId("settings-save").click();
+    await saved;
     await page.reload();
     await expect(page.getByTestId("settings-notes")).toHaveValue("Wifi: oak-guest");
     await expect(page.getByRole("button", { name: /Star/i })).toHaveCount(0);

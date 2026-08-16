@@ -44,6 +44,16 @@ test.describe("review canvas (Hillcrest fixture)", () => {
     await page.getByTestId("line-value-merchant").fill("Hillcrest Foods");
     await page.getByTestId("line-value-merchant").blur();
     await expect(page.getByTestId("line-value-merchant")).toHaveValue("Hillcrest Foods");
+    await expect
+      .poll(async () => {
+        const res = await page.request.get(`/api/documents/${id}`);
+        const json = (await res.json()) as {
+          fields?: Array<{ key?: string; humanValue?: string | null; modelValue?: string | null }>;
+        };
+        const merchant = json.fields?.find((field) => field.key === "merchant");
+        return String(merchant?.humanValue || merchant?.modelValue || "");
+      })
+      .toMatch(/Hillcrest Foods/i);
     await expect(page.getByTestId("line-amount-merchant")).toHaveCount(0);
     await expect(page.getByTestId("line-amount-date")).toHaveCount(0);
     const itemAmt = page.getByTestId("line-amount-item_3");

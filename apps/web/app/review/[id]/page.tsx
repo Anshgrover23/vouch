@@ -33,6 +33,7 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   const [memberId, setMemberId] = useState<string | null>(null);
   const [seats, setSeats] = useState<ShareSeat[]>([]);
   const pendingSplit = useRef<string | null>(null);
+  const loadGen = useRef(0);
   const [waiting, setWaiting] = useState<string[]>([]);
   const [paidByName, setPaidByName] = useState("");
   const [people, setPeople] = useState<string[]>([]);
@@ -49,13 +50,16 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
   }, [params]);
 
   async function load(docId: string) {
+    const gen = ++loadGen.current;
     const res = await fetch(`/api/documents/${docId}`, { credentials: "include" });
+    if (gen !== loadGen.current) return;
     if (!res.ok) {
       setError("This receipt is not available.");
       setStatus("missing");
       return;
     }
     const json = await res.json();
+    if (gen !== loadGen.current) return;
     const nextFields = json.fields.map((f: CanvasField & { confidence: string | null }) => ({
       ...f,
       modelValue: sanitizeFieldValue(f.modelValue) || null,

@@ -451,7 +451,7 @@
   }
 
   .claim:hover {
-    transform: translate(1px, 1px);
+    background: var(--color-paper);
   }
 
   .claimOn:hover {
