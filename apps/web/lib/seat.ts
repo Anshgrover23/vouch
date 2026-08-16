@@ -1,3 +1,5 @@
+import { parseDisplayName } from "./split";
+
 export function seatSharePath(shareToken: string, inviteToken?: string | null) {
   const share = String(shareToken ?? "").trim();
   const invite = String(inviteToken ?? "").trim();
@@ -28,4 +30,20 @@ export function seatSignupPath(shareToken: string, inviteToken: string) {
 export function seatLoginPath(shareToken: string, inviteToken: string) {
   const next = seatSharePath(shareToken, inviteToken);
   return `/login?invite=${encodeURIComponent(inviteToken)}&next=${encodeURIComponent(next)}`;
+}
+
+/** Seat links are for people who have not joined yet. Joined friends use the app as themselves. */
+export function openInviteSeats<T extends {
+  displayName?: string | null;
+  inviteToken?: string | null;
+  status?: string | null;
+  you?: boolean;
+}>(rows: T[]) {
+  return rows.flatMap((row) => {
+    if (row.you || row.status === "joined") return [];
+    const displayName = parseDisplayName(row.displayName);
+    const inviteToken = String(row.inviteToken ?? "").trim();
+    if (!displayName || !inviteToken) return [];
+    return [{ ...row, displayName, inviteToken }];
+  });
 }

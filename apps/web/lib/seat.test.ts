@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { seatInviteMessage, seatLoginPath, seatSharePath, seatSignupPath, withSeatQuery } from "./seat";
+import { openInviteSeats, seatInviteMessage, seatLoginPath, seatSharePath, seatSignupPath, withSeatQuery } from "./seat";
 
 describe("seat paths", () => {
   it("keeps the view-only bill link free of an invite token", () => {
@@ -31,6 +31,20 @@ describe("seat paths", () => {
     assert.equal(
       seatLoginPath("bill-1", "goru-token"),
       "/login?invite=goru-token&next=%2Fs%2Fbill-1%3Fas%3Dgoru-token",
+    );
+  });
+});
+
+describe("openInviteSeats", () => {
+  it("keeps Goru who is still waiting and drops Seema once she joined", () => {
+    const open = openInviteSeats([
+      { displayName: "Ansh", inviteToken: "ansh", status: "joined", you: true },
+      { displayName: "Goru", inviteToken: "goru", status: "invited" },
+      { displayName: "Seema", inviteToken: "seema", status: "joined" },
+    ]);
+    assert.deepEqual(
+      open.map((row) => row.displayName),
+      ["Goru"],
     );
   });
 });

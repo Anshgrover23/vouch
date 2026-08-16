@@ -2,7 +2,7 @@
 
 import { createContext, use, useMemo, useState, type ReactNode } from "react";
 import { personSlug } from "@/lib/split";
-import { seatInviteMessage, withSeatQuery } from "@/lib/seat";
+import { openInviteSeats, seatInviteMessage, withSeatQuery } from "@/lib/seat";
 import styles from "./invite-sheet.module.css";
 
 export type ShareSeat = {
@@ -163,12 +163,13 @@ function Seats() {
   const {
     meta: { shareUrl, seats },
   } = useShareLinks();
-  if (seats.length === 0) {
-    return <p className={styles.lede}>Add a friend first, then you get a link that opens as them.</p>;
+  const waiting = openInviteSeats(seats);
+  if (waiting.length === 0) {
+    return <p className={styles.lede}>Nobody is waiting on a seat link. The view-only bill is for looking.</p>;
   }
   return (
     <ul className={styles.seats}>
-      {seats.map((seat) => {
+      {waiting.map((seat) => {
         const url = withSeatQuery(shareUrl, seat.inviteToken);
         const slug = personSlug(seat.displayName);
         return (

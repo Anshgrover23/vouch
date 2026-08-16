@@ -10,9 +10,11 @@ import {
   createGroup,
   dismissInvite,
   openReview,
+  readyContext,
   signupViaApi,
   becomeOnboarded,
   uniqueEmail,
+  PASSWORD,
 } from "./helpers";
 
 test.describe("review canvas (Hillcrest fixture)", () => {
@@ -294,5 +296,42 @@ test.describe("review canvas (Hillcrest fixture)", () => {
     await expect(page.getByTestId("line-item_3")).toBeVisible();
     await expect(page.getByTestId("line-remove-item_3")).toHaveCount(0);
     await expect(page.getByTestId("line-label-item_3")).toHaveCount(0);
+  });
+});
+
+test.describe("share picker after a friend joins", () => {
+  test("drops Seema once she joined and keeps Goru waiting", async ({ browser }) => {
+    const anshContext = await browser.newContext();
+    const guestContext = await browser.newContext();
+    const ansh = await readyContext(anshContext, { name: "Ansh", email: uniqueEmail("share-ansh") });
+    const group = await createGroup(ansh, "Namo Tandoori");
+    const seemaSeat = await addGroupMember(ansh, group.id, "Seema");
+    await addGroupMember(ansh, group.id, "Goru");
+    const { id, shareToken } = await createGroceryReceipt(ansh, group.id);
+    await openReview(ansh, id);
+
+    await ansh.getByTestId("share-open").click();
+    await expect(ansh.getByTestId("share-seat-seema")).toBeVisible();
+    await expect(ansh.getByTestId("share-seat-goru")).toBeVisible();
+    await ansh.getByTestId("share-picker-dismiss").click();
+
+    const guest = await guestContext.newPage();
+    await guest.goto(`/s/${shareToken}?as=${encodeURIComponent(seemaSeat.inviteToken)}`);
+    await guest.getByTestId("share-signup").click();
+    await guest.waitForURL(/\/signup\?invite=/);
+    await guest.getByTestId("auth-email").fill(uniqueEmail("seema-join"));
+    await guest.getByTestId("auth-password").fill(PASSWORD);
+    await guest.getByTestId("auth-submit").click();
+    await guest.waitForURL((url) => url.pathname === `/s/${shareToken}`);
+
+    await ansh.reload();
+    await dismissInvite(ansh);
+    await ansh.getByTestId("share-open").click();
+    await expect(ansh.getByTestId("share-seat-seema")).toHaveCount(0);
+    await expect(ansh.getByTestId("share-seat-goru")).toBeVisible();
+    await expect(ansh.getByTestId("share-view")).toBeVisible();
+
+    await anshContext.close();
+    await guestContext.close();
   });
 });

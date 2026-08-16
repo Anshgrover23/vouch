@@ -8,6 +8,7 @@ import { ReviewCanvas, type CanvasField, type CanvasPage } from "@/components/Re
 import { ShareLinks, type ShareSeat } from "@/components/ShareLinks";
 import { SplitBoard } from "@/components/SplitBoard";
 import { parseDisplayName, prettyTitle, receiptHeadline, sanitizeFieldValue, type ClaimStance, type SplitClaim } from "@/lib/split";
+import { openInviteSeats } from "@/lib/seat";
 import styles from "./review.module.css";
 
 function fieldFilled(field: CanvasField) {
@@ -80,13 +81,11 @@ export default function ReviewPage({ params }: { params: Promise<{ id: string }>
     const youName = parseDisplayName(json.you?.displayName);
     if (youName) setDisplayName(youName);
     setSeats(
-      ((json.seats ?? []) as Array<ShareSeat & { you?: boolean }>)
-        .filter((row) => !row.you && parseDisplayName(row.displayName) && row.inviteToken)
-        .map((row) => ({
-          displayName: parseDisplayName(row.displayName) as string,
-          inviteToken: row.inviteToken,
-          status: row.status,
-        })),
+      openInviteSeats((json.seats ?? []) as Array<ShareSeat & { you?: boolean }>).map((row) => ({
+        displayName: row.displayName,
+        inviteToken: row.inviteToken,
+        status: row.status,
+      })),
     );
     setWaiting(
       ((json.waiting ?? []) as Array<{ displayName?: string }>)
