@@ -1,0 +1,29 @@
+.demo {
+  margin: 0;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+
+.frame {
+  overflow: hidden;
+  border: 3px solid var(--color-ink);
+  box-shadow: 10px 10px 0 0 var(--color-ink);
+  background: var(--color-ink);
+}
+
+.video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: var(--color-ink);
+  vertical-align: middle;
+}

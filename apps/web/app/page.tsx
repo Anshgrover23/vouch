@@ -1,6 +1,7 @@
 import { SiteFooter } from "@/components/Chrome";
 import { SiteChrome } from "@/components/SiteChrome";
 import { ReceiptPoster } from "@/components/ReceiptPoster";
+import { HeroDemo } from "@/components/HeroDemo";
 import { IconArrow, IconCamera, IconCheck, IconShare, IconTap } from "@/components/Brand";
 import { getSession } from "@/lib/auth";
 import styles from "./landing.module.css";
@@ -51,6 +52,10 @@ export default async function LandingPage() {
             </ul>
           </div>
           <ReceiptPoster />
+        </section>
+
+        <section className={styles.film} aria-label="Product demo">
+          <HeroDemo />
         </section>
 
         <section className={styles.steps} id="how">

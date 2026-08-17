@@ -51,6 +51,12 @@
   align-items: center;
 }
 
+.film {
+  padding: 0 var(--space-lg) var(--space-2xl);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
 .copy h1 {
   font-size: var(--text-display);
   margin: 12px 0 16px;
@@ -286,6 +292,7 @@
   }
 
   .hero,
+  .film,
   .steps,
   .product,
   .void {
