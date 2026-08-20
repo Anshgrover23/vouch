@@ -142,6 +142,7 @@ export async function loadGroupLedger(
       action: row.action,
       detail: row.detail,
       createdAt: row.createdAt,
+      documentId: row.documentId,
     })),
     csv: receiptsCsv(receipts, people),
     people,

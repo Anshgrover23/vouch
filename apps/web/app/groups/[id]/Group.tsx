@@ -32,6 +32,7 @@ export type GroupActivity = {
   action: string;
   detail: Record<string, unknown> | null;
   createdAt: string;
+  documentId?: string | null;
 };
 
 type GroupState = {
